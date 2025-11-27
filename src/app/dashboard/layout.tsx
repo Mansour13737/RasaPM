@@ -1,26 +1,6 @@
 import Link from "next/link";
-import {
-  Bell,
-  Building2,
-  Home,
-  LineChart,
-  Package,
-  Settings,
-  Users,
-} from "lucide-react";
-import {
-  SidebarProvider,
-  Sidebar,
-  SidebarHeader,
-  SidebarContent,
-  SidebarMenu,
-  SidebarMenuItem,
-  SidebarMenuButton,
-  SidebarFooter,
-  SidebarTrigger,
-  SidebarInset,
-} from "@/components/ui/sidebar";
-import { Button } from "@/components/ui/button";
+import Image from "next/image";
+import { Building2, Home, LogOut, Settings, User as UserIcon } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,11 +9,99 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Logo } from "@/components/icons";
 
 // Fake role for now. In a real app, this would come from an auth context.
-const userRole = 'admin'; 
+const userRole = 'admin';
+
+const Navbar = () => {
+  return (
+    <nav className="bg-card border-b sticky top-0 z-50">
+      <div className="container mx-auto px-4">
+        <div className="flex justify-between items-center h-16">
+          <div className="flex items-center space-x-4 space-x-reverse">
+            <Link href="/dashboard" className="flex items-center gap-2">
+              <Logo className="w-8 h-8 text-primary" />
+              <span className="text-xl font-bold font-headline">SiteWise PM</span>
+            </Link>
+            <div className="hidden md:flex items-baseline space-x-4 space-x-reverse">
+               <Link href={userRole === 'admin' ? "/dashboard" : "/dashboard/technician"} className="px-3 py-2 rounded-md text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground flex items-center gap-2">
+                 <Home className="w-4 h-4" />
+                 داشبورد
+               </Link>
+               <Link href="/dashboard/sites" className="px-3 py-2 rounded-md text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground flex items-center gap-2">
+                  <Building2 className="w-4 h-4" />
+                  سایت‌ها
+               </Link>
+            </div>
+          </div>
+          <div className="flex items-center">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="rounded-full">
+                  <Avatar>
+                    <AvatarImage src="https://i.pravatar.cc/150?u=tech" alt="رضا قاسمی" />
+                    <AvatarFallback>رق</AvatarFallback>
+                  </Avatar>
+                  <span className="sr-only">Toggle user menu</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>حساب کاربری</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem>
+                    <UserIcon className="ml-2 h-4 w-4"/>
+                    پروفایل
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                    <Settings className="ml-2 h-4 w-4"/>
+                    تنظیمات
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link href="/">
+                    <LogOut className="ml-2 h-4 w-4"/>
+                    خروج
+                  </Link>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
+      </div>
+    </nav>
+  );
+};
+
+const PageHeader = () => {
+    return (
+        <header className="relative bg-gray-800 h-48 md:h-64 flex items-center justify-center">
+            <Image 
+                src="https://picsum.photos/seed/telecom-header/1920/400"
+                alt="تجهیزات مخابراتی"
+                fill
+                className="object-cover w-full h-full opacity-30"
+                data-ai-hint="telecom equipment"
+            />
+            <div className="relative z-10 text-center text-white p-4">
+                <h1 className="text-4xl md:text-5xl font-bold font-headline">مدیریت جامع PM</h1>
+                <p className="mt-2 text-lg md:text-xl text-gray-200">به پنل مدیریت سایت‌های مخابراتی خوش آمدید</p>
+            </div>
+        </header>
+    )
+}
+
+const Footer = () => {
+    return (
+        <footer className="bg-card border-t mt-auto">
+            <div className="container mx-auto py-4 px-4 text-center text-muted-foreground">
+                <p>&copy; {new Date().getFullYear()} SiteWise PM. تمام حقوق محفوظ است.</p>
+            </div>
+        </footer>
+    )
+}
 
 export default function DashboardLayout({
   children,
@@ -41,75 +109,13 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   return (
-    <SidebarProvider defaultOpen={false}>
-      <Sidebar collapsible="offcanvas">
-        <SidebarHeader>
-            <div className="flex items-center gap-2">
-              <Logo className="w-8 h-8 text-primary" />
-              <span className="text-lg font-semibold font-headline">SiteWise PM</span>
-            </div>
-        </SidebarHeader>
-        <SidebarContent className="p-2">
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild tooltip="داشبورد">
-                <Link href={userRole === 'admin' ? "/dashboard" : "/dashboard/technician"}>
-                  <Home />
-                  <span>داشبورد</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-               <SidebarMenuButton asChild tooltip="سایت‌ها">
-                <Link href="/dashboard/sites">
-                  <Building2 />
-                  <span>سایت‌ها</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarContent>
-        <SidebarFooter>
-          <SidebarMenu>
-             <SidebarMenuItem>
-                <SidebarMenuButton href="#" tooltip="تنظیمات" disabled>
-                  <Settings />
-                  <span>تنظیمات</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarFooter>
-      </Sidebar>
-      <SidebarInset>
-        <header className="flex h-14 items-center gap-4 border-b bg-card px-4 lg:h-[60px] lg:px-6">
-          <SidebarTrigger />
-          <div className="w-full flex-1">
-            {/* Can add a global search here later */}
-          </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="secondary" size="icon" className="rounded-full">
-                <Avatar>
-                  <AvatarImage src="https://i.pravatar.cc/150?u=tech" alt="رضا قاسمی" />
-                  <AvatarFallback>رق</AvatarFallback>
-                </Avatar>
-                <span className="sr-only">Toggle user menu</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>حساب کاربری</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>پروفایل</DropdownMenuItem>
-              <DropdownMenuItem>تنظیمات</DropdownMenuItem>
-              <DropdownMenuSeparator />
-               <DropdownMenuItem asChild>
-                <Link href="/">خروج</Link>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </header>
-        <main className="flex-1 p-4 sm:p-6 bg-muted/40">{children}</main>
-      </SidebarInset>
-    </SidebarProvider>
+    <div className="flex flex-col min-h-screen bg-muted/40">
+        <Navbar />
+        <PageHeader />
+        <main className="flex-grow container mx-auto p-4 sm:p-6">
+            {children}
+        </main>
+        <Footer />
+    </div>
   );
 }
