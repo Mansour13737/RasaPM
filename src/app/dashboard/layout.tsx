@@ -64,18 +64,6 @@ export default function DashboardLayout({
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton href="#" tooltip="گزارشات" disabled>
-                <LineChart />
-                <span>گزارشات</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-             <SidebarMenuItem>
-              <SidebarMenuButton href="#" tooltip="کاربران" disabled>
-                <Users />
-                <span>کاربران</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
           </SidebarMenu>
         </SidebarContent>
         <SidebarFooter>
