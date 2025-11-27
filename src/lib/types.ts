@@ -14,6 +14,7 @@ export interface Site {
   location: string;
   imageUrl: string;
   imageHint: string;
+  technicianId: string;
 }
 
 export type TaskType = 'static' | 'dynamic';

@@ -19,8 +19,8 @@ export default function LoginPage() {
         <CardContent>
           <form className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">ایمیل</Label>
-              <Input id="email" type="email" placeholder="email@example.com" required />
+              <Label htmlFor="username">نام کاربری</Label>
+              <Input id="username" type="text" placeholder="مثلا: management" required />
             </div>
             <div className="space-y-2">
               <div className="flex items-center">
@@ -29,7 +29,7 @@ export default function LoginPage() {
                   رمز عبور را فراموش کرده‌اید؟
                 </Link>
               </div>
-              <Input id="password" type="password" required />
+              <Input id="password" type="password" required placeholder="••••••••" />
             </div>
             <Link href="/dashboard" className="w-full">
               <Button type="submit" className="w-full">

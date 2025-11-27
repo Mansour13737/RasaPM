@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import React, { useState, useMemo } from "react";
-import { sites, getTechnicians, getCities, weeklyPMs } from "@/lib/data";
+import { sites, users, weeklyPMs } from "@/lib/data";
 import {
   Card,
   CardContent,
@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { MapPin, Search, Activity, CheckCircle, Clock } from "lucide-react";
+import type { User } from "@/lib/types";
 
 const ITEMS_PER_PAGE = 9;
 
@@ -31,23 +32,30 @@ export default function DashboardPage() {
   const [selectedCity, setSelectedCity] = useState("all");
   const [selectedFlm, setSelectedFlm] = useState("all");
 
-  const technicians = useMemo(() => getTechnicians(), []);
-  const cities = useMemo(() => getCities(), []);
+  const allTechnicians = useMemo(() => users.filter(u => u.role === 'Technician'), []);
+  const allCities = useMemo(() => [...new Set(sites.map(s => s.location.split(', ')[1]))], []);
 
   const filteredSites = useMemo(() => {
     return sites.filter((site) => {
       const siteCity = site.location.split(", ")[1];
-      const matchesSearch = site.name
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase());
-      const matchesCity =
-        selectedCity === "all" || siteCity === selectedCity;
-      // This is a placeholder for FLM filtering, as we don't have direct mapping in sites data.
-      // In a real app, you'd have a technician assigned to a site.
-      const matchesFlm = selectedFlm === "all"; // Placeholder logic
+      const matchesSearch = site.name.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesCity = selectedCity === "all" || siteCity === selectedCity;
+      const matchesFlm = selectedFlm === "all" || site.technicianId === selectedFlm;
       return matchesSearch && matchesCity && matchesFlm;
     });
   }, [searchTerm, selectedCity, selectedFlm]);
+  
+  const availableTechnicians = useMemo(() => {
+    if (selectedCity === 'all') return allTechnicians;
+    const techIdsInCity = new Set(sites.filter(s => s.location.split(', ')[1] === selectedCity).map(s => s.technicianId));
+    return allTechnicians.filter(t => techIdsInCity.has(t.id));
+  }, [selectedCity, allTechnicians]);
+
+  const availableCities = useMemo(() => {
+    if (selectedFlm === 'all') return allCities;
+    const citiesForTech = new Set(sites.filter(s => s.technicianId === selectedFlm).map(s => s.location.split(', ')[1]));
+    return allCities.filter(c => citiesForTech.has(c));
+  }, [selectedFlm, allCities]);
 
   const totalPages = Math.ceil(filteredSites.length / ITEMS_PER_PAGE);
   const paginatedSites = filteredSites.slice(
@@ -69,6 +77,31 @@ export default function DashboardPage() {
         return acc;
     }, { completed: 0, inProgress: 0, pending: 0 });
   }, []);
+
+  const handleCityChange = (value: string) => {
+      setSelectedCity(value);
+      if (selectedFlm !== 'all') {
+          const flmUser = allTechnicians.find(t => t.id === selectedFlm);
+          if (flmUser) {
+              const isFlmInNewCity = sites.some(s => s.technicianId === flmUser.id && s.location.split(', ')[1] === value);
+              if (!isFlmInNewCity && value !== 'all') {
+                  setSelectedFlm('all');
+              }
+          }
+      }
+      setCurrentPage(1);
+  }
+
+  const handleFlmChange = (value: string) => {
+      setSelectedFlm(value);
+      if (selectedCity !== 'all') {
+          const isCityAvailableForFlm = sites.some(s => s.technicianId === value && s.location.split(', ')[1] === selectedCity);
+          if (!isCityAvailableForFlm && value !== 'all') {
+              setSelectedCity('all');
+          }
+      }
+      setCurrentPage(1);
+  }
 
   return (
     <div className="container mx-auto">
@@ -133,17 +166,14 @@ export default function DashboardPage() {
             </div>
             <Select
               value={selectedCity}
-              onValueChange={(value) => {
-                setSelectedCity(value);
-                setCurrentPage(1);
-              }}
+              onValueChange={handleCityChange}
             >
               <SelectTrigger className="w-full md:w-[180px]">
                 <SelectValue placeholder="فیلتر بر اساس شهر" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">همه شهرها</SelectItem>
-                {cities.map((city) => (
+                {availableCities.map((city) => (
                   <SelectItem key={city} value={city}>
                     {city}
                   </SelectItem>
@@ -152,18 +182,15 @@ export default function DashboardPage() {
             </Select>
             <Select
               value={selectedFlm}
-              onValueChange={(value) => {
-                setSelectedFlm(value);
-                setCurrentPage(1);
-              }}
+              onValueChange={handleFlmChange}
             >
               <SelectTrigger className="w-full md:w-[180px]">
                 <SelectValue placeholder="فیلتر بر اساس FLM" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">همه FLM ها</SelectItem>
-                {technicians.map((tech) => (
-                  <SelectItem key={tech.id} value={tech.name}>
+                {availableTechnicians.map((tech) => (
+                  <SelectItem key={tech.id} value={tech.id}>
                     {tech.name}
                   </SelectItem>
                 ))}
