@@ -49,16 +49,20 @@ export default function DashboardLayout({
         <SidebarContent className="p-2">
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton href="/dashboard" tooltip="داشبورد">
-                <Home />
-                <span>داشبورد</span>
-              </SidebarMenuButton>
+              <Link href="/dashboard" passHref>
+                <SidebarMenuButton asChild tooltip="داشبورد">
+                  <Home />
+                  <span>داشبورد</span>
+                </SidebarMenuButton>
+              </Link>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton href="/dashboard/sites" tooltip="سایت‌ها">
-                <Building2 />
-                <span>سایت‌ها</span>
-              </SidebarMenuButton>
+               <Link href="/dashboard/sites" passHref>
+                <SidebarMenuButton asChild tooltip="سایت‌ها">
+                  <Building2 />
+                  <span>سایت‌ها</span>
+                </SidebarMenuButton>
+              </Link>
             </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton href="#" tooltip="گزارشات" disabled>
