@@ -38,7 +38,7 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   return (
-    <SidebarProvider>
+    <SidebarProvider defaultOpen={false}>
       <Sidebar collapsible="icon">
         <SidebarContent className="p-2">
           <SidebarHeader>
@@ -87,7 +87,7 @@ export default function DashboardLayout({
       </Sidebar>
       <SidebarInset>
         <header className="flex h-14 items-center gap-4 border-b bg-card px-4 lg:h-[60px] lg:px-6">
-          <SidebarTrigger className="md:flex" />
+          <SidebarTrigger className="flex" />
           <div className="w-full flex-1">
             {/* Can add a global search here later */}
           </div>
