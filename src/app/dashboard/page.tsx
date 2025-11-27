@@ -36,12 +36,22 @@ import type { User, PMStatus, WeeklyPM } from "@/lib/types";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
-import { format } from "date-fns";
+import { format, startOfWeek, endOfWeek, isWithinInterval } from "date-fns";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
 const ITEMS_PER_PAGE = 9;
+
+function getWeekDate(weekIdentifier: string): Date {
+    const [year, week] = weekIdentifier.split('-W').map(Number);
+    const d = new Date(year, 0, 1 + (week - 1) * 7);
+    // Adjust to the start of the week (assuming Monday is the first day)
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+    return new Date(d.setDate(diff));
+}
+
 
 function getStatusVariant(status: PMStatus) {
   switch (status) {
@@ -173,7 +183,16 @@ export default function DashboardPage() {
         const matchesSearch = searchTerm === "" || site.name.toLowerCase().includes(searchTerm.toLowerCase()) || (pm.crNumber && pm.crNumber.toLowerCase().includes(searchTerm.toLowerCase()));
         const matchesCity = selectedCity === "all" || siteCity === selectedCity;
         const matchesFlm = selectedFlm === "all" || site.technicianId === selectedFlm;
-        const matchesDate = !selectedDate || format(new Date(pm.weekIdentifier.replace('W', '-')), 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd'); // This is a simplification
+        
+        const matchesDate = !selectedDate || (() => {
+            try {
+                const weekStart = getWeekDate(pm.weekIdentifier);
+                const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
+                return isWithinInterval(selectedDate, { start: weekStart, end: weekEnd });
+            } catch (e) {
+                return false;
+            }
+        })();
 
         return matchesSearch && matchesCity && matchesFlm && matchesDate;
     });
@@ -247,12 +266,14 @@ export default function DashboardPage() {
       <TableBody>
         {pms.map(pm => {
           const site = sites.find(s => s.id === pm.siteId);
+          const startDate = getWeekDate(pm.weekIdentifier);
+          const endDate = endOfWeek(startDate, { weekStartsOn: 1 });
           return (
             <TableRow key={pm.id}>
               <TableCell>{site?.name || 'N/A'}</TableCell>
               <TableCell>{site?.location.split(', ')[1] || 'N/A'}</TableCell>
-              <TableCell>{pm.weekIdentifier}</TableCell>
-              <TableCell>{pm.weekIdentifier}</TableCell>
+              <TableCell>{format(startDate, 'yyyy/MM/dd')}</TableCell>
+              <TableCell>{format(endDate, 'yyyy/MM/dd')}</TableCell>
               <TableCell>{pm.crNumber || 'N/A'}</TableCell>
               <TableCell>
                 <Badge variant={getStatusVariant(pm.status)}>{pm.status}</Badge>
@@ -424,3 +445,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    

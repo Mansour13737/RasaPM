@@ -22,9 +22,19 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import type { PMStatus, WeeklyPM } from "@/lib/types";
+import { format, endOfWeek } from "date-fns";
+
 
 // Let's assume the logged-in technician is 'user-12' (رضا قاسمی)
 const LOGGED_IN_TECHNICIAN_ID = 'user-12';
+
+function getWeekDate(weekIdentifier: string): Date {
+    const [year, week] = weekIdentifier.split('-W').map(Number);
+    const d = new Date(year, 0, 1 + (week - 1) * 7);
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+    return new Date(d.setDate(diff));
+}
 
 function getStatusVariant(status: PMStatus) {
   switch (status) {
@@ -74,16 +84,15 @@ export default function TechnicianDashboardPage() {
       <TableBody>
         {pms.length > 0 ? pms.map(pm => {
           const site = sites.find(s => s.id === pm.siteId);
-          // Simplified date logic
-          const startDate = pm.weekIdentifier; 
-          const endDate = pm.weekIdentifier; 
+          const startDate = getWeekDate(pm.weekIdentifier);
+          const endDate = endOfWeek(startDate, { weekStartsOn: 1 });
 
           return (
             <TableRow key={pm.id}>
               <TableCell>{site?.name || 'N/A'}</TableCell>
               <TableCell>{site?.location.split(', ')[1] || 'N/A'}</TableCell>
-              <TableCell>{startDate}</TableCell>
-              <TableCell>{endDate}</TableCell>
+              <TableCell>{format(startDate, 'yyyy/MM/dd')}</TableCell>
+              <TableCell>{format(endDate, 'yyyy/MM/dd')}</TableCell>
               <TableCell>{pm.crNumber || 'N/A'}</TableCell>
               <TableCell>
                 <Badge variant={getStatusVariant(pm.status)}>{pm.status}</Badge>
@@ -148,3 +157,5 @@ export default function TechnicianDashboardPage() {
     </div>
   );
 }
+
+    
