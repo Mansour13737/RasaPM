@@ -1,18 +1,26 @@
+"use client"
+
 import Link from "next/link";
-import { getSiteById, getPMsForSite, getCRsForSite, users } from "@/lib/data";
+import { getSiteById, getPMsForSite, getCRsForSite, users, sites as allSites, getTechnicians, getCities } from "@/lib/data";
 import { notFound } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FilePlus2, ChevronLeft, CalendarDays } from "lucide-react";
+import { FilePlus2, ChevronLeft, CalendarDays, Calendar as CalendarIcon } from "lucide-react";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { CRPriority, CRStatus } from "@/lib/types";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
+import React from "react";
+
 
 function getPriorityBadgeVariant(priority: CRPriority) {
   switch (priority) {
@@ -31,6 +39,134 @@ function getStatusBadgeVariant(status: CRStatus) {
       case 'رد شده': return 'destructive';
       default: return 'default';
     }
+}
+
+// Admin role check placeholder
+const isAdmin = true;
+
+const NewCRSheet = () => {
+    const [startDate, setStartDate] = React.useState<Date>();
+    const [endDate, setEndDate] = React.useState<Date>();
+    const technicians = getTechnicians();
+    const cities = getCities();
+
+    return (
+        <Sheet>
+            <SheetTrigger asChild>
+                <Button>
+                    <FilePlus2 className="ml-2 h-4 w-4" />
+                    ثبت CR جدید
+                </Button>
+            </SheetTrigger>
+            <SheetContent>
+                <SheetHeader>
+                    <SheetTitle>ثبت درخواست تغییر جدید</SheetTitle>
+                    <SheetDescription>
+                        جزئیات درخواست خود را برای بررسی وارد کنید.
+                    </SheetDescription>
+                </SheetHeader>
+                <form className="grid gap-4 py-4">
+                    <div className="grid gap-2">
+                        <Label htmlFor="cr-title">عنوان</Label>
+                        <Select>
+                            <SelectTrigger>
+                                <SelectValue placeholder="نوع CR را انتخاب کنید" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="pm">برای PM</SelectItem>
+                                <SelectItem value="repair">برای رفع خرابی</SelectItem>
+                                <SelectItem value="special">برای بازدید در موارد خاص</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="grid gap-2">
+                        <Label htmlFor="cr-siteId">کد سایت</Label>
+                        <Select>
+                            <SelectTrigger>
+                                <SelectValue placeholder="کد سایت را انتخاب کنید" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {allSites.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="grid gap-2">
+                        <Label htmlFor="cr-city">شهر</Label>
+                         <Select>
+                            <SelectTrigger>
+                                <SelectValue placeholder="شهر را انتخاب کنید" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {cities.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="grid gap-2">
+                        <Label htmlFor="cr-flm">نام FLM</Label>
+                         <Select>
+                            <SelectTrigger>
+                                <SelectValue placeholder="نام تکنسین را انتخاب کنید" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {technicians.map(t => <SelectItem key={t.id} value={t.name}>{t.name}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                     <div className="grid gap-2">
+                        <Label>تاریخ شروع</Label>
+                         <Popover>
+                            <PopoverTrigger asChild>
+                                <Button
+                                variant={"outline"}
+                                className={cn(
+                                    "w-full justify-start text-left font-normal",
+                                    !startDate && "text-muted-foreground"
+                                )}
+                                >
+                                <CalendarIcon className="ml-2 h-4 w-4" />
+                                {startDate ? format(startDate, "PPP") : <span>تاریخ را انتخاب کنید</span>}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0">
+                                <Calendar
+                                mode="single"
+                                selected={startDate}
+                                onSelect={setStartDate}
+                                initialFocus
+                                />
+                            </PopoverContent>
+                        </Popover>
+                    </div>
+                     <div className="grid gap-2">
+                        <Label>تاریخ پایان</Label>
+                         <Popover>
+                            <PopoverTrigger asChild>
+                                <Button
+                                variant={"outline"}
+                                className={cn(
+                                    "w-full justify-start text-left font-normal",
+                                    !endDate && "text-muted-foreground"
+                                )}
+                                >
+                                <CalendarIcon className="ml-2 h-4 w-4" />
+                                {endDate ? format(endDate, "PPP") : <span>تاریخ را انتخاب کنید</span>}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0">
+                                <Calendar
+                                mode="single"
+                                selected={endDate}
+                                onSelect={setEndDate}
+                                initialFocus
+                                />
+                            </PopoverContent>
+                        </Popover>
+                    </div>
+                    <Button type="submit" className="mt-4">ثبت درخواست</Button>
+                </form>
+            </SheetContent>
+        </Sheet>
+    );
 }
 
 export default function SiteDetailPage({ params }: { params: { id: string } }) {
@@ -56,9 +192,17 @@ export default function SiteDetailPage({ params }: { params: { id: string } }) {
         </TabsList>
         <TabsContent value="pms">
           <Card>
-            <CardHeader>
-              <CardTitle>لیست PMهای هفتگی</CardTitle>
-              <CardDescription>PMهای ثبت شده برای این سایت را مشاهده و مدیریت کنید.</CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>لیست PMهای هفتگی</CardTitle>
+                <CardDescription>PMهای ثبت شده برای این سایت را مشاهده و مدیریت کنید.</CardDescription>
+              </div>
+              {isAdmin && (
+                <Button>
+                  <FilePlus2 className="ml-2 h-4 w-4" />
+                  ثبت PM جدید
+                </Button>
+              )}
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
@@ -92,51 +236,7 @@ export default function SiteDetailPage({ params }: { params: { id: string } }) {
                 <CardTitle>درخواست‌های تغییر (CR)</CardTitle>
                 <CardDescription>CRهای ثبت شده برای این سایت را مشاهده و مدیریت کنید.</CardDescription>
               </div>
-               <Sheet>
-                <SheetTrigger asChild>
-                  <Button>
-                    <FilePlus2 className="ml-2 h-4 w-4" />
-                    ثبت CR جدید
-                  </Button>
-                </SheetTrigger>
-                <SheetContent>
-                  <SheetHeader>
-                    <SheetTitle>ثبت درخواست تغییر جدید</SheetTitle>
-                    <SheetDescription>
-                      جزئیات درخواست خود را برای بررسی وارد کنید.
-                    </SheetDescription>
-                  </SheetHeader>
-                  <form className="grid gap-4 py-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="cr-title">عنوان</Label>
-                      <Input id="cr-title" placeholder="مثال: خرابی فن سرور" />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="cr-description">توضیحات</Label>
-                      <Textarea id="cr-description" placeholder="جزئیات کامل درخواست را شرح دهید." />
-                    </div>
-                     <div className="grid gap-2">
-                      <Label htmlFor="cr-priority">اولویت</Label>
-                       <Select>
-                        <SelectTrigger>
-                          <SelectValue placeholder="اولویت را انتخاب کنید" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="low">کم</SelectItem>
-                          <SelectItem value="medium">متوسط</SelectItem>
-                          <SelectItem value="high">زیاد</SelectItem>
-                          <SelectItem value="critical">بحرانی</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="grid gap-2">
-                        <Label htmlFor="cr-photo">آپلود عکس</Label>
-                        <Input id="cr-photo" type="file" />
-                    </div>
-                    <Button type="submit" className="mt-4">ثبت درخواست</Button>
-                  </form>
-                </SheetContent>
-              </Sheet>
+               {isAdmin && <NewCRSheet />}
             </CardHeader>
             <CardContent>
               <Table>

@@ -58,6 +58,10 @@ export type CRPriority = 'کم' | 'متوسط' | 'زیاد' | 'بحرانی';
 export interface ChangeRequest {
   id: string;
   siteId: string;
+  city: string;
+  technicianName: string;
+  startDate: string;
+  endDate: string;
   title: string;
   description: string;
   submittedBy: string; // userId

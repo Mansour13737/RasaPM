@@ -229,36 +229,48 @@ export const weeklyPMs: WeeklyPM[] = [
 export const changeRequests: ChangeRequest[] = [
   {
     id: 'cr-1',
-    siteId: 'site-1',
-    title: 'خرابی کابل شبکه در رک A-03',
+    siteId: '201000',
+    title: 'سی آر برای رفع خرابی',
     description: 'کابل شبکه سرور DB05 قطع شده و نیاز به تعویض فوری دارد.',
     submittedBy: 'user-3',
     createdAt: '2024-07-15T10:00:00Z',
     status: 'باز',
     priority: 'بحرانی',
     photos: ['https://picsum.photos/seed/cr1/400/300'],
+    city: 'Babol',
+    technicianName: 'Salimi',
+    startDate: '2024-07-15',
+    endDate: '2024-07-16',
   },
   {
     id: 'cr-2',
-    siteId: 'site-1',
-    title: 'ارتقا حافظه سرور WEB02',
+    siteId: '201001',
+    title: 'سی آر برای بازدید در موارد خاص',
     description: 'به دلیل افزایش ترافیک، نیاز به افزایش رم سرور WEB02 از ۳۲ به ۶۴ گیگابایت است.',
     submittedBy: 'user-2',
     createdAt: '2024-07-14T14:30:00Z',
     status: 'در حال انجام',
     priority: 'زیاد',
     photos: [],
+    city: 'Sari',
+    technicianName: 'Dastar',
+    startDate: '2024-07-16',
+    endDate: '2024-07-18',
   },
   {
     id: 'cr-3',
-    siteId: 'site-2',
-    title: 'نصب دوربین مداربسته جدید',
+    siteId: '261000',
+    title: 'سی آر برای پی ام',
     description: 'نصب دوربین در ورودی جنوبی برای پوشش بهتر امنیتی.',
     submittedBy: 'user-1',
     createdAt: '2024-07-12T09:00:00Z',
     status: 'انجام شده',
     priority: 'متوسط',
     photos: [],
+    city: 'Gorgan',
+    technicianName: 'Noroozipoor',
+    startDate: '2024-07-13',
+    endDate: '2024-07-14',
   },
 ];
 
@@ -293,4 +305,13 @@ export function getPMById(id: string) {
     const allTasks = [...populatedTasks, ...missingTasks];
 
     return { ...pm, tasks: allTasks };
+}
+
+export function getTechnicians() {
+    return users.filter(u => u.role === 'Technician');
+}
+
+export function getCities() {
+    const cityNames = sites.map(s => s.location.split(', ')[1]);
+    return [...new Set(cityNames)];
 }
