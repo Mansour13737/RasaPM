@@ -40,13 +40,13 @@ export default function DashboardLayout({
   return (
     <SidebarProvider defaultOpen={false}>
       <Sidebar collapsible="icon">
-        <SidebarContent className="p-2">
-          <SidebarHeader>
+        <SidebarHeader>
             <div className="flex items-center gap-2">
               <Logo className="w-8 h-8 text-primary" />
               <span className="text-lg font-semibold font-headline">SiteWise PM</span>
             </div>
-          </SidebarHeader>
+        </SidebarHeader>
+        <SidebarContent>
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton href="/dashboard" tooltip="داشبورد">
@@ -74,7 +74,7 @@ export default function DashboardLayout({
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarContent>
-        <SidebarFooter className="p-2">
+        <SidebarFooter>
           <SidebarMenu>
              <SidebarMenuItem>
                 <SidebarMenuButton href="#" tooltip="تنظیمات" disabled>
@@ -87,7 +87,7 @@ export default function DashboardLayout({
       </Sidebar>
       <SidebarInset>
         <header className="flex h-14 items-center gap-4 border-b bg-card px-4 lg:h-[60px] lg:px-6">
-          <SidebarTrigger className="flex" />
+          <SidebarTrigger />
           <div className="w-full flex-1">
             {/* Can add a global search here later */}
           </div>
