@@ -1,3 +1,4 @@
+
 "use client"
 
 import Link from "next/link";
@@ -8,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FilePlus2, ChevronLeft, CalendarDays, Calendar as CalendarIcon } from "lucide-react";
+import { FilePlus2, ChevronLeft, CalendarDays, Calendar as CalendarIcon, ArrowLeft } from "lucide-react";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -281,9 +282,17 @@ export default function SiteDetailPage({ params }: { params: { id: string } }) {
 
   return (
     <div className="container mx-auto">
-      <header className="mb-6">
-        <h1 className="text-3xl font-bold font-headline">{site.name}</h1>
-        <p className="text-muted-foreground">{site.location}</p>
+       <header className="flex justify-between items-center mb-6">
+        <div>
+            <h1 className="text-3xl font-bold font-headline">{site.name}</h1>
+            <p className="text-muted-foreground">{site.location}</p>
+        </div>
+        <Link href="/management-dashboard/sites">
+            <Button variant="outline">
+                <ArrowLeft className="ml-2 h-4 w-4" />
+                بازگشت به لیست سایت‌ها
+            </Button>
+        </Link>
       </header>
 
       <Tabs defaultValue="pms" dir="rtl">
