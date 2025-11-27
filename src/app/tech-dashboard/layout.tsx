@@ -26,25 +26,23 @@ const getRole = () => {
 
 
 const Navbar = () => {
-  const userRole = getRole();
-
   return (
     <nav className="bg-card border-b sticky top-0 z-50">
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center space-x-4 space-x-reverse">
-            <Link href="/dashboard" className="flex items-center gap-2">
+            <Link href="/tech-dashboard" className="flex items-center gap-2">
               <Logo className="w-8 h-8 text-primary" />
               <span className="text-xl font-bold font-headline">SiteWise PM</span>
             </Link>
             <div className="hidden md:flex items-baseline space-x-4 space-x-reverse">
-               <Link href={userRole === 'admin' ? "/dashboard" : "/dashboard/technician"} className="px-3 py-2 rounded-md text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground flex items-center gap-2">
+               <Link href="/tech-dashboard" className="px-3 py-2 rounded-md text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground flex items-center gap-2">
                  <Home className="w-4 h-4" />
                  داشبورد
                </Link>
-               <Link href="/dashboard/sites" className="px-3 py-2 rounded-md text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground flex items-center gap-2">
+               <Link href="/tech-dashboard/sites" className="px-3 py-2 rounded-md text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground flex items-center gap-2">
                   <Building2 className="w-4 h-4" />
-                  سایت‌ها
+                  سایت‌های من
                </Link>
             </div>
           </div>
@@ -53,8 +51,8 @@ const Navbar = () => {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="rounded-full">
                   <Avatar>
-                    <AvatarImage src={userRole === 'admin' ? "https://i.pravatar.cc/150?u=admin" : "https://i.pravatar.cc/150?u=tech"} alt="User Avatar" />
-                    <AvatarFallback>{userRole === 'admin' ? 'اد' : 'تک'}</AvatarFallback>
+                    <AvatarImage src={"https://i.pravatar.cc/150?u=tech"} alt="User Avatar" />
+                    <AvatarFallback>{'تک'}</AvatarFallback>
                   </Avatar>
                   <span className="sr-only">Toggle user menu</span>
                 </Button>
@@ -94,15 +92,15 @@ const PageHeader = () => {
     return (
         <header className="relative bg-gray-800 h-48 md:h-64 flex items-center justify-center">
             <Image 
-                src="https://picsum.photos/seed/telecom-header/1920/400"
-                alt="تجهیزات مخابراتی"
+                src="https://picsum.photos/seed/telecom-tech/1920/400"
+                alt="تکنسین مخابرات"
                 fill
                 className="object-cover w-full h-full opacity-30"
-                data-ai-hint="telecom equipment"
+                data-ai-hint="telecom technician"
             />
             <div className="relative z-10 text-center text-white p-4">
-                <h1 className="text-4xl md:text-5xl font-bold font-headline">مدیریت جامع PM</h1>
-                <p className="mt-2 text-lg md:text-xl text-gray-200">به پنل مدیریت سایت‌های مخابراتی خوش آمدید</p>
+                <h1 className="text-4xl md:text-5xl font-bold font-headline">داشبورد تکنسین</h1>
+                <p className="mt-2 text-lg md:text-xl text-gray-200">برنامه‌ها و وظایف خود را مدیریت کنید</p>
             </div>
         </header>
     )
@@ -118,7 +116,7 @@ const Footer = () => {
     )
 }
 
-export default function DashboardLayout({
+export default function TechnicianDashboardLayout({
   children,
 }: {
   children: React.ReactNode;
@@ -129,10 +127,8 @@ export default function DashboardLayout({
   useEffect(() => {
     setIsClient(true);
     const userRole = getRole();
-    if (!userRole) {
+    if (userRole !== 'technician') {
       router.push('/');
-    } else if (userRole === 'technician' && window.location.pathname === '/dashboard') {
-      router.push('/dashboard/technician');
     }
   }, [router]);
   

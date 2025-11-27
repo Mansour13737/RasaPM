@@ -20,10 +20,10 @@ export default function LoginPage() {
     e.preventDefault();
     if (username === "management" && password === "RasaManagement") {
       localStorage.setItem("userRole", "admin");
-      router.push("/dashboard");
+      router.push("/management-dashboard");
     } else if (username === "rasatech" && password === "RasaTech") {
       localStorage.setItem("userRole", "technician");
-      router.push("/dashboard/technician");
+      router.push("/tech-dashboard");
     } else {
       toast({
         variant: "destructive",

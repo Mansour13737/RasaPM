@@ -7,11 +7,8 @@ import { sites, users } from "@/lib/data";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
-// Assume a logged-in user for demonstration
-const LOGGED_IN_TECHNICIAN_ID = 'user-12';
 
 export default function SitesPage() {
-    const technicianSiteIds = new Set(sites.filter(s => s.technicianId === LOGGED_IN_TECHNICIAN_ID).map(s => s.id));
 
     return (
         <div className="container mx-auto">
@@ -23,10 +20,9 @@ export default function SitesPage() {
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {sites.map(site => {
                     const technician = users.find(u => u.id === site.technicianId);
-                    const isTechnicianSite = technicianSiteIds.has(site.id);
                     return (
-                        <Link href={`/dashboard/sites/${site.id}`} key={site.id}>
-                            <Card className={`overflow-hidden hover:shadow-lg transition-shadow ${isTechnicianSite ? 'border-primary border-2' : ''}`}>
+                        <Link href={`/management-dashboard/sites/${site.id}`} key={site.id}>
+                            <Card className={`overflow-hidden hover:shadow-lg transition-shadow`}>
                                 <Image 
                                     src={site.imageUrl} 
                                     alt={site.name} 
@@ -44,9 +40,6 @@ export default function SitesPage() {
                                         <Badge variant="secondary">تکنسین</Badge>
                                         <p className="text-sm font-medium">{technician?.name || 'نامشخص'}</p>
                                     </div>
-                                    {isTechnicianSite && (
-                                        <Badge className="mt-2 w-full justify-center">سایت شما</Badge>
-                                    )}
                                 </CardContent>
                             </Card>
                         </Link>

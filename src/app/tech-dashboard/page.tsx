@@ -98,7 +98,7 @@ export default function TechnicianDashboardPage() {
                 <Badge variant={getStatusVariant(pm.status)}>{pm.status}</Badge>
               </TableCell>
                <TableCell>
-                 <Link href={`/dashboard/pm/${pm.id}`}>
+                 <Link href={`/tech-dashboard/pm/${pm.id}`}>
                     <Button variant="outline" size="sm">مشاهده و انجام</Button>
                  </Link>
               </TableCell>
@@ -157,5 +157,3 @@ export default function TechnicianDashboardPage() {
     </div>
   );
 }
-
-    

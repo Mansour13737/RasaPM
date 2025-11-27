@@ -303,7 +303,7 @@ export default function SiteDetailPage({ params }: { params: { id: string } }) {
             <CardContent>
               <div className="space-y-4">
                 {pms.map(pm => (
-                  <Link href={`/dashboard/pm/${pm.id}`} key={pm.id}>
+                  <Link href={`/management-dashboard/pm/${pm.id}`} key={pm.id}>
                     <div className="border rounded-lg p-4 flex justify-between items-center hover:bg-accent hover:text-accent-foreground transition-colors">
                       <div className="flex items-center gap-3">
                         <CalendarDays className="h-5 w-5 text-muted-foreground" />

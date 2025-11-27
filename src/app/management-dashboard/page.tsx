@@ -195,7 +195,7 @@ const NewPMSheet = ({ onNewPM }: { onNewPM: () => void}) => {
 };
 
 
-export default function DashboardPage() {
+export default function ManagementDashboardPage() {
   const [allPMs, setAllPMs] = useState([...weeklyPMs]);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
@@ -315,7 +315,7 @@ export default function DashboardPage() {
                 <Badge variant={getStatusVariant(pm.status)}>{pm.status}</Badge>
               </TableCell>
                <TableCell>
-                 <Link href={`/dashboard/pm/${pm.id}`}>
+                 <Link href={`/management-dashboard/pm/${pm.id}`}>
                     <Button variant="outline" size="sm">مشاهده</Button>
                  </Link>
               </TableCell>
