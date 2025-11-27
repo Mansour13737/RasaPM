@@ -39,7 +39,7 @@ export default function DashboardLayout({
 }) {
   return (
     <SidebarProvider defaultOpen={false}>
-      <Sidebar collapsible="icon">
+      <Sidebar collapsible="offcanvas">
         <SidebarHeader>
             <div className="flex items-center gap-2">
               <Logo className="w-8 h-8 text-primary" />
