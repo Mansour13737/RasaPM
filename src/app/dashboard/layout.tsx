@@ -87,7 +87,7 @@ export default function DashboardLayout({
       </Sidebar>
       <SidebarInset>
         <header className="flex h-14 items-center gap-4 border-b bg-card px-4 lg:h-[60px] lg:px-6">
-          <SidebarTrigger />
+          <SidebarTrigger className="md:flex" />
           <div className="w-full flex-1">
             {/* Can add a global search here later */}
           </div>
