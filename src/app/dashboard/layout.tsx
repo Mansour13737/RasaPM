@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { Building2, Home, LogOut, Settings, User as UserIcon } from "lucide-react";
 import {
   DropdownMenu,
@@ -12,11 +15,19 @@ import {
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Logo } from "@/components/icons";
+import { useEffect, useState } from "react";
 
-// Fake role for now. In a real app, this would come from an auth context.
-const userRole = 'admin';
+const getRole = () => {
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem("userRole");
+  }
+  return null;
+}
+
 
 const Navbar = () => {
+  const userRole = getRole();
+
   return (
     <nav className="bg-card border-b sticky top-0 z-50">
       <div className="container mx-auto px-4">
@@ -42,8 +53,8 @@ const Navbar = () => {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="rounded-full">
                   <Avatar>
-                    <AvatarImage src="https://i.pravatar.cc/150?u=tech" alt="رضا قاسمی" />
-                    <AvatarFallback>رق</AvatarFallback>
+                    <AvatarImage src={userRole === 'admin' ? "https://i.pravatar.cc/150?u=admin" : "https://i.pravatar.cc/150?u=tech"} alt="User Avatar" />
+                    <AvatarFallback>{userRole === 'admin' ? 'اد' : 'تک'}</AvatarFallback>
                   </Avatar>
                   <span className="sr-only">Toggle user menu</span>
                 </Button>
@@ -60,7 +71,11 @@ const Navbar = () => {
                     تنظیمات
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
+                <DropdownMenuItem onClick={() => {
+                  if (typeof window !== 'undefined') {
+                    localStorage.removeItem('userRole');
+                  }
+                }} asChild>
                   <Link href="/">
                     <LogOut className="ml-2 h-4 w-4"/>
                     خروج
@@ -108,6 +123,23 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const router = useRouter();
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+    const userRole = getRole();
+    if (!userRole) {
+      router.push('/');
+    } else if (userRole === 'technician' && window.location.pathname === '/dashboard') {
+      router.push('/dashboard/technician');
+    }
+  }, [router]);
+  
+  if (!isClient) {
+    return null; // Or a loading spinner
+  }
+
   return (
     <div className="flex flex-col min-h-screen bg-muted/40">
         <Navbar />

@@ -379,3 +379,12 @@ export function getCities() {
     const cityNames = sites.map(s => s.location.split(', ')[1]);
     return [...new Set(cityNames)];
 }
+
+export function addNewPM(pm: Omit<WeeklyPM, 'id'>) {
+    const newPM = {
+        ...pm,
+        id: `pm-${weeklyPMs.length + 1}`,
+    };
+    weeklyPMs.unshift(newPM); // Add to the beginning of the array
+    return newPM;
+}

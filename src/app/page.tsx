@@ -19,8 +19,10 @@ export default function LoginPage() {
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     if (username === "management" && password === "RasaManagement") {
+      localStorage.setItem("userRole", "admin");
       router.push("/dashboard");
     } else if (username === "rasatech" && password === "RasaTech") {
+      localStorage.setItem("userRole", "technician");
       router.push("/dashboard/technician");
     } else {
       toast({
