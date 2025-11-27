@@ -46,7 +46,7 @@ export default function DashboardLayout({
               <span className="text-lg font-semibold font-headline">SiteWise PM</span>
             </div>
         </SidebarHeader>
-        <SidebarContent>
+        <SidebarContent className="p-2">
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton href="/dashboard" tooltip="داشبورد">
@@ -55,7 +55,7 @@ export default function DashboardLayout({
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton href="/dashboard" tooltip="سایت‌ها">
+              <SidebarMenuButton href="/dashboard/sites" tooltip="سایت‌ها">
                 <Building2 />
                 <span>سایت‌ها</span>
               </SidebarMenuButton>
