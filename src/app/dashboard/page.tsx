@@ -45,10 +45,10 @@ const ITEMS_PER_PAGE = 9;
 
 function getWeekDate(weekIdentifier: string): Date {
     const [year, week] = weekIdentifier.split('-W').map(Number);
-    const d = new Date(year, 0, 1 + (week - 1) * 7);
-    // Adjust to the start of the week (assuming Monday is the first day)
+    const d = new Date(year, 0, 1);
+    d.setDate(d.getDate() + (week - 1) * 7);
     const day = d.getDay();
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1); 
     return new Date(d.setDate(diff));
 }
 
@@ -445,5 +445,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    

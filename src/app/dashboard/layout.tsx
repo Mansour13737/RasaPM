@@ -32,6 +32,9 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Logo } from "@/components/icons";
 
+// Fake role for now. In a real app, this would come from an auth context.
+const userRole = 'admin'; 
+
 export default function DashboardLayout({
   children,
 }: {
@@ -50,7 +53,7 @@ export default function DashboardLayout({
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton asChild tooltip="داشبورد">
-                <Link href="/dashboard">
+                <Link href={userRole === 'admin' ? "/dashboard" : "/dashboard/technician"}>
                   <Home />
                   <span>داشبورد</span>
                 </Link>
