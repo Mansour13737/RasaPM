@@ -34,13 +34,17 @@ export interface Task {
   fields: TaskField[];
 }
 
+export type PMStatus = 'Pending' | 'In Progress' | 'Completed' | 'Reviewed' | 'Cancelled';
+
 export interface WeeklyPM {
   id: string;
   weekIdentifier: string; // e.g., "2024-W28"
   siteId: string;
   assignedTechnicianId: string | null;
-  status: 'Pending' | 'In Progress' | 'Completed' | 'Reviewed';
+  status: PMStatus;
   tasks: TaskResult[];
+  crNumber?: string;
+  comments?: { userId: string; text: string; timestamp: string }[];
 }
 
 export interface TaskResult {
@@ -55,6 +59,7 @@ export interface TaskResult {
 
 export type CRStatus = 'باز' | 'در حال انجام' | 'انجام شده' | 'رد شده';
 export type CRPriority = 'کم' | 'متوسط' | 'زیاد' | 'بحرانی';
+export type CRType = 'برای PM' | 'برای رفع خرابی' | 'برای بازدید در موارد خاص';
 
 export interface ChangeRequest {
   id: string;
@@ -63,7 +68,7 @@ export interface ChangeRequest {
   technicianName: string;
   startDate: string;
   endDate: string;
-  title: string;
+  title: CRType;
   description: string;
   submittedBy: string; // userId
   createdAt: string;

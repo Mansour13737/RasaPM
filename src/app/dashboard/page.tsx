@@ -12,6 +12,15 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -21,29 +30,67 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { MapPin, Search, Activity, CheckCircle, Clock } from "lucide-react";
-import type { User } from "@/lib/types";
+import { Badge } from "@/components/ui/badge";
+import { Search, Activity, CheckCircle, Clock, XCircle, Calendar as CalendarIcon, FilePlus2 } from "lucide-react";
+import type { User, PMStatus, WeeklyPM } from "@/lib/types";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
 
 const ITEMS_PER_PAGE = 9;
+
+function getStatusVariant(status: PMStatus) {
+  switch (status) {
+    case "Completed":
+      return "default";
+    case "In Progress":
+      return "secondary";
+    case "Cancelled":
+      return "destructive";
+    case "Pending":
+    default:
+      return "outline";
+  }
+}
+
 
 export default function DashboardPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCity, setSelectedCity] = useState("all");
   const [selectedFlm, setSelectedFlm] = useState("all");
+  const [selectedDate, setSelectedDate] = React.useState<Date>();
 
   const allTechnicians = useMemo(() => users.filter(u => u.role === 'Technician'), []);
   const allCities = useMemo(() => [...new Set(sites.map(s => s.location.split(', ')[1]))], []);
 
-  const filteredSites = useMemo(() => {
-    return sites.filter((site) => {
-      const siteCity = site.location.split(", ")[1];
-      const matchesSearch = site.name.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesCity = selectedCity === "all" || siteCity === selectedCity;
-      const matchesFlm = selectedFlm === "all" || site.technicianId === selectedFlm;
-      return matchesSearch && matchesCity && matchesFlm;
+  const filteredPMs = useMemo(() => {
+    return weeklyPMs.filter(pm => {
+        const site = sites.find(s => s.id === pm.siteId);
+        if (!site) return false;
+        
+        const siteCity = site.location.split(', ')[1];
+        const matchesSearch = searchTerm === "" || site.name.toLowerCase().includes(searchTerm.toLowerCase()) || (pm.crNumber && pm.crNumber.toLowerCase().includes(searchTerm.toLowerCase()));
+        const matchesCity = selectedCity === "all" || siteCity === selectedCity;
+        const matchesFlm = selectedFlm === "all" || site.technicianId === selectedFlm;
+        const matchesDate = !selectedDate || format(new Date(pm.weekIdentifier.replace('W', '-')), 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd'); // This is a simplification
+
+        return matchesSearch && matchesCity && matchesFlm && matchesDate;
     });
-  }, [searchTerm, selectedCity, selectedFlm]);
+  }, [searchTerm, selectedCity, selectedFlm, selectedDate]);
+
+
+  const pmByStatus = useMemo(() => {
+      return filteredPMs.reduce((acc, pm) => {
+          if (!acc[pm.status]) {
+              acc[pm.status] = [];
+          }
+          acc[pm.status].push(pm);
+          return acc;
+      }, {} as Record<PMStatus, WeeklyPM[]>);
+  }, [filteredPMs]);
+
   
   const availableTechnicians = useMemo(() => {
     if (selectedCity === 'all') return allTechnicians;
@@ -57,51 +104,71 @@ export default function DashboardPage() {
     return allCities.filter(c => citiesForTech.has(c));
   }, [selectedFlm, allCities]);
 
-  const totalPages = Math.ceil(filteredSites.length / ITEMS_PER_PAGE);
-  const paginatedSites = filteredSites.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
-  );
-
-  const handlePageChange = (page: number) => {
-    if (page >= 1 && page <= totalPages) {
-      setCurrentPage(page);
-    }
-  };
-
   const pmStats = useMemo(() => {
     return weeklyPMs.reduce((acc, pm) => {
         if (pm.status === 'Completed') acc.completed += 1;
         else if (pm.status === 'In Progress') acc.inProgress += 1;
         else if (pm.status === 'Pending') acc.pending += 1;
+        else if (pm.status === 'Cancelled') acc.cancelled += 1;
         return acc;
-    }, { completed: 0, inProgress: 0, pending: 0 });
+    }, { completed: 0, inProgress: 0, pending: 0, cancelled: 0 });
   }, []);
 
   const handleCityChange = (value: string) => {
       setSelectedCity(value);
-      if (selectedFlm !== 'all') {
-          const flmUser = allTechnicians.find(t => t.id === selectedFlm);
-          if (flmUser) {
-              const isFlmInNewCity = sites.some(s => s.technicianId === flmUser.id && s.location.split(', ')[1] === value);
-              if (!isFlmInNewCity && value !== 'all') {
-                  setSelectedFlm('all');
-              }
-          }
+      const techIsStillValid = availableTechnicians.some(t => t.id === selectedFlm);
+      if (selectedFlm !== 'all' && !techIsStillValid) {
+          setSelectedFlm('all');
       }
       setCurrentPage(1);
   }
 
   const handleFlmChange = (value: string) => {
       setSelectedFlm(value);
-      if (selectedCity !== 'all') {
-          const isCityAvailableForFlm = sites.some(s => s.technicianId === value && s.location.split(', ')[1] === selectedCity);
-          if (!isCityAvailableForFlm && value !== 'all') {
-              setSelectedCity('all');
-          }
-      }
+       const cityIsStillValid = availableCities.some(c => c === selectedCity);
+       if(selectedCity !== 'all' && !cityIsStillValid){
+          setSelectedCity('all');
+       }
       setCurrentPage(1);
   }
+
+  const PMTable = ({ pms }: { pms: WeeklyPM[] }) => (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>کد سایت</TableHead>
+          <TableHead>شهر</TableHead>
+          <TableHead>تاریخ شروع</TableHead>
+          <TableHead>تاریخ پایان</TableHead>
+          <TableHead>شماره CR</TableHead>
+          <TableHead>وضعیت</TableHead>
+          <TableHead>عملیات</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {pms.map(pm => {
+          const site = sites.find(s => s.id === pm.siteId);
+          return (
+            <TableRow key={pm.id}>
+              <TableCell>{site?.name || 'N/A'}</TableCell>
+              <TableCell>{site?.location.split(', ')[1] || 'N/A'}</TableCell>
+              <TableCell>{pm.weekIdentifier}</TableCell>
+              <TableCell>{pm.weekIdentifier}</TableCell>
+              <TableCell>{pm.crNumber || 'N/A'}</TableCell>
+              <TableCell>
+                <Badge variant={getStatusVariant(pm.status)}>{pm.status}</Badge>
+              </TableCell>
+               <TableCell>
+                 <Link href={`/dashboard/pm/${pm.id}`}>
+                    <Button variant="outline" size="sm">مشاهده</Button>
+                 </Link>
+              </TableCell>
+            </TableRow>
+          )
+        })}
+      </TableBody>
+    </Table>
+  );
 
   return (
     <div className="container mx-auto">
@@ -112,7 +179,7 @@ export default function DashboardPage() {
         </p>
       </header>
 
-      <div className="grid gap-4 md:grid-cols-3 mb-6">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">PMهای انجام شده</CardTitle>
@@ -140,14 +207,23 @@ export default function DashboardPage() {
             <div className="text-2xl font-bold">{pmStats.pending}</div>
           </CardContent>
         </Card>
+        <Card>
+           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">PM های باطل شده</CardTitle>
+            <XCircle className="h-4 w-4 text-red-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{pmStats.cancelled}</div>
+          </CardContent>
+        </Card>
       </div>
 
 
       <Card>
         <CardHeader>
-          <CardTitle>لیست سایت‌ها</CardTitle>
+          <CardTitle>برنامه‌های PM</CardTitle>
           <CardDescription>
-            سایت‌های موجود را جستجو و مدیریت کنید.
+            برنامه‌های PM را جستجو، فیلتر و مدیریت کنید.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -155,7 +231,7 @@ export default function DashboardPage() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="جستجوی نام سایت..."
+                placeholder="جستجو بر اساس نام سایت یا شماره CR..."
                 className="pl-10"
                 value={searchTerm}
                 onChange={(e) => {
@@ -196,66 +272,52 @@ export default function DashboardPage() {
                 ))}
               </SelectContent>
             </Select>
+             <Popover>
+                <PopoverTrigger asChild>
+                    <Button
+                    variant={"outline"}
+                    className={cn(
+                        "w-full justify-start text-left font-normal md:w-[240px]",
+                        !selectedDate && "text-muted-foreground"
+                    )}
+                    >
+                    <CalendarIcon className="ml-2 h-4 w-4" />
+                    {selectedDate ? format(selectedDate, "PPP") : <span>فیلتر بر اساس تاریخ</span>}
+                    </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                    <Calendar
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={setSelectedDate}
+                    initialFocus
+                    />
+                </PopoverContent>
+            </Popover>
           </div>
 
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {paginatedSites.map((site) => (
-              <Card key={site.id} className="overflow-hidden flex flex-col">
-                <CardHeader className="p-0">
-                  <div className="relative h-48 w-full">
-                    <Image
-                      src={site.imageUrl}
-                      alt={`Image of ${site.name}`}
-                      fill
-                      style={{ objectFit: "cover" }}
-                      data-ai-hint={site.imageHint}
-                    />
-                  </div>
-                </CardHeader>
-                <CardContent className="p-4 flex-grow">
-                  <CardTitle className="mb-1 font-headline">
-                    {site.name}
-                  </CardTitle>
-                  <CardDescription className="flex items-center gap-1">
-                    <MapPin className="h-4 w-4" />
-                    {site.location}
-                  </CardDescription>
-                </CardContent>
-                <CardFooter className="p-4 pt-0">
-                  <Link
-                    href={`/dashboard/sites/${site.id}`}
-                    className="w-full"
-                  >
-                    <Button variant="outline" className="w-full">
-                      مشاهده جزئیات
-                    </Button>
-                  </Link>
-                </CardFooter>
-              </Card>
-            ))}
-          </div>
+          <Tabs defaultValue="in-progress">
+              <TabsList className="grid w-full grid-cols-4">
+                <TabsTrigger value="in-progress">در حال انجام ({pmByStatus['In Progress']?.length || 0})</TabsTrigger>
+                <TabsTrigger value="completed">انجام شده ({pmByStatus['Completed']?.length || 0})</TabsTrigger>
+                <TabsTrigger value="pending">معلق ({pmByStatus['Pending']?.length || 0})</TabsTrigger>
+                <TabsTrigger value="cancelled">باطل شده ({pmByStatus['Cancelled']?.length || 0})</TabsTrigger>
+              </TabsList>
+              <TabsContent value="in-progress">
+                <PMTable pms={pmByStatus['In Progress'] || []} />
+              </TabsContent>
+              <TabsContent value="completed">
+                <PMTable pms={pmByStatus['Completed'] || []} />
+              </TabsContent>
+               <TabsContent value="pending">
+                <PMTable pms={pmByStatus['Pending'] || []} />
+              </TabsContent>
+               <TabsContent value="cancelled">
+                <PMTable pms={pmByStatus['Cancelled'] || []} />
+              </TabsContent>
+          </Tabs>
+
         </CardContent>
-        <CardFooter className="flex justify-center items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handlePageChange(currentPage - 1)}
-            disabled={currentPage === 1}
-          >
-            قبلی
-          </Button>
-          <span className="text-sm text-muted-foreground">
-            صفحه {currentPage} از {totalPages}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handlePageChange(currentPage + 1)}
-            disabled={currentPage === totalPages}
-          >
-            بعدی
-          </Button>
-        </CardFooter>
       </Card>
     </div>
   );

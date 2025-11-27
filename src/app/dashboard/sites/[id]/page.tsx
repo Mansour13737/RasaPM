@@ -58,7 +58,7 @@ const NewCRSheet = () => {
                     ثبت CR جدید
                 </Button>
             </SheetTrigger>
-            <SheetContent>
+            <SheetContent className="overflow-y-auto">
                 <SheetHeader>
                     <SheetTitle>ثبت درخواست تغییر جدید</SheetTitle>
                     <SheetDescription>
@@ -162,12 +162,113 @@ const NewCRSheet = () => {
                             </PopoverContent>
                         </Popover>
                     </div>
+                     <div className="grid gap-2">
+                        <Label htmlFor="cr-description">توضیحات</Label>
+                        <Textarea id="cr-description" placeholder="توضیحات تکمیلی را اینجا وارد کنید..." />
+                    </div>
                     <Button type="submit" className="mt-4">ثبت درخواست</Button>
                 </form>
             </SheetContent>
         </Sheet>
     );
 }
+
+
+const NewPMSheet = () => {
+    const [startDate, setStartDate] = React.useState<Date>();
+    const [endDate, setEndDate] = React.useState<Date>();
+
+    return (
+        <Sheet>
+            <SheetTrigger asChild>
+                <Button>
+                    <FilePlus2 className="ml-2 h-4 w-4" />
+                    ثبت PM جدید
+                </Button>
+            </SheetTrigger>
+            <SheetContent className="overflow-y-auto">
+                <SheetHeader>
+                    <SheetTitle>ایجاد پلن PM جدید</SheetTitle>
+                    <SheetDescription>
+                       اطلاعات پلن PM را وارد کنید تا برای تکنسین مربوطه ارسال شود.
+                    </SheetDescription>
+                </SheetHeader>
+                <form className="grid gap-4 py-4">
+                    <div className="grid gap-2">
+                        <Label htmlFor="pm-cr-number">شماره CR</Label>
+                        <Input id="pm-cr-number" placeholder="شماره CR مرتبط را وارد کنید" />
+                    </div>
+                    <div className="grid gap-2">
+                        <Label htmlFor="pm-siteId">کد سایت</Label>
+                        <Select>
+                            <SelectTrigger>
+                                <SelectValue placeholder="کد سایت را انتخاب کنید" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {allSites.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                     <div className="grid gap-2">
+                        <Label>تاریخ شروع</Label>
+                         <Popover>
+                            <PopoverTrigger asChild>
+                                <Button
+                                variant={"outline"}
+                                className={cn(
+                                    "w-full justify-start text-left font-normal",
+                                    !startDate && "text-muted-foreground"
+                                )}
+                                >
+                                <CalendarIcon className="ml-2 h-4 w-4" />
+                                {startDate ? format(startDate, "PPP") : <span>تاریخ را انتخاب کنید</span>}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0">
+                                <Calendar
+                                mode="single"
+                                selected={startDate}
+                                onSelect={setStartDate}
+                                initialFocus
+                                />
+                            </PopoverContent>
+                        </Popover>
+                    </div>
+                     <div className="grid gap-2">
+                        <Label>تاریخ پایان</Label>
+                         <Popover>
+                            <PopoverTrigger asChild>
+                                <Button
+                                variant={"outline"}
+                                className={cn(
+                                    "w-full justify-start text-left font-normal",
+                                    !endDate && "text-muted-foreground"
+                                )}
+                                >
+                                <CalendarIcon className="ml-2 h-4 w-4" />
+                                {endDate ? format(endDate, "PPP") : <span>تاریخ را انتخاب کنید</span>}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0">
+                                <Calendar
+                                mode="single"
+                                selected={endDate}
+                                onSelect={setEndDate}
+                                initialFocus
+                                />
+                            </PopoverContent>
+                        </Popover>
+                    </div>
+                    <div className="grid gap-2">
+                        <Label htmlFor="pm-comment">کامنت برای تکنسین</Label>
+                        <Textarea id="pm-comment" placeholder="پیام خود را برای تکنسین بنویسید..." />
+                    </div>
+                    <Button type="submit" className="mt-4">ایجاد و ارسال پلن</Button>
+                </form>
+            </SheetContent>
+        </Sheet>
+    );
+};
 
 export default function SiteDetailPage({ params }: { params: { id: string } }) {
   const site = getSiteById(params.id);
@@ -197,12 +298,7 @@ export default function SiteDetailPage({ params }: { params: { id: string } }) {
                 <CardTitle>لیست PMهای هفتگی</CardTitle>
                 <CardDescription>PMهای ثبت شده برای این سایت را مشاهده و مدیریت کنید.</CardDescription>
               </div>
-              {isAdmin && (
-                <Button>
-                  <FilePlus2 className="ml-2 h-4 w-4" />
-                  ثبت PM جدید
-                </Button>
-              )}
+              {isAdmin && <NewPMSheet />}
             </CardHeader>
             <CardContent>
               <div className="space-y-4">

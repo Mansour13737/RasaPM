@@ -14,9 +14,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
-import { Camera, MapPin, CheckCircle2, Circle } from "lucide-react";
+import { Camera, MapPin, CheckCircle2, Circle, Send } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import type { TaskField } from "@/lib/types";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 function TaskFieldRenderer({ field }: { field: TaskField }) {
     const id = `task-field-${field.id}`;
@@ -65,78 +66,130 @@ export default function PMDetailPage({ params }: { params: { id:string } }) {
 
   const site = getSiteById(pm.siteId);
   const technician = users.find(u => u.id === pm.assignedTechnicianId);
+  const getStatusVariant = (status: string) => {
+    if (status === 'Completed') return 'default';
+    if (status === 'In Progress') return 'secondary';
+    return 'outline';
+  }
+
 
   return (
-    <div className="container mx-auto">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-2xl font-bold font-headline">
-            PM هفتگی - {site?.name}
-          </CardTitle>
-          <CardDescription>
-            هفته: {pm.weekIdentifier} | وضعیت: <Badge variant={pm.status === 'Completed' ? 'default' : 'secondary'}>{pm.status}</Badge> | تکنسین: {technician?.name ?? 'نامشخص'}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Accordion type="multiple" defaultValue={pm.tasks.map(t => t.id || t.taskId)} className="w-full">
-            {pm.tasks.map((task, index) => (
-              <AccordionItem value={task.id || task.taskId} key={task.id || task.taskId}>
-                <AccordionTrigger>
-                  <div className="flex items-center gap-3">
-                    {task.isCompleted ? <CheckCircle2 className="h-5 w-5 text-green-600" /> : <Circle className="h-5 w-5 text-muted-foreground" />}
-                    <span>{index + 1}. {task.title}</span>
-                    <Badge variant={task.type === 'dynamic' ? 'outline' : 'secondary'}>{task.type === 'dynamic' ? 'دینامیک' : 'ثابت'}</Badge>
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent>
-                  <div className="space-y-4 px-4 py-2 border-r-2 border-primary/20">
-                    <p className="text-muted-foreground">{task.description}</p>
-                    
-                    <div className="grid gap-4 md:grid-cols-2">
-                         <div className="space-y-4">
-                           <Label>فیلدهای تسک</Label>
-                           <div className="p-4 border rounded-md space-y-4 bg-muted/50">
-                            {task.fields && task.fields.length > 0 ? (
-                                task.fields.map(field => <TaskFieldRenderer key={field.id} field={field} />)
-                            ) : (
-                                <p className="text-sm text-muted-foreground">فیلد اضافه‌ای برای این تسک تعریف نشده است.</p>
-                            )}
-                            <div className="flex items-center space-x-2 space-x-reverse pt-2">
-                                <Checkbox id={`task-completed-${task.id}`} checked={task.isCompleted} />
-                                <Label htmlFor={`task-completed-${task.id}`} className="font-semibold">تسک انجام شد</Label>
+    <div className="container mx-auto grid gap-6 lg:grid-cols-3">
+      <div className="lg:col-span-2">
+        <Card>
+            <CardHeader>
+            <div className="flex items-center justify-between">
+                <div>
+                    <CardTitle className="text-2xl font-bold font-headline">
+                        PM هفتگی - {site?.name}
+                    </CardTitle>
+                    <CardDescription>
+                        شماره CR: {pm.crNumber || 'N/A'} | هفته: {pm.weekIdentifier}
+                    </CardDescription>
+                </div>
+                <div className="text-left">
+                    <Badge variant={getStatusVariant(pm.status)} className="text-lg px-4 py-1">{pm.status}</Badge>
+                    <p className="text-sm text-muted-foreground mt-1">تکنسین: {technician?.name ?? 'نامشخص'}</p>
+                </div>
+            </div>
+            </CardHeader>
+            <CardContent>
+            <Accordion type="multiple" defaultValue={pm.tasks.map(t => t.id || t.taskId)} className="w-full">
+                {pm.tasks.map((task, index) => (
+                <AccordionItem value={task.id || task.taskId} key={task.id || task.taskId}>
+                    <AccordionTrigger>
+                    <div className="flex items-center gap-3">
+                        {task.isCompleted ? <CheckCircle2 className="h-5 w-5 text-green-600" /> : <Circle className="h-5 w-5 text-muted-foreground" />}
+                        <span>{index + 1}. {task.title}</span>
+                        <Badge variant={task.type === 'dynamic' ? 'outline' : 'secondary'}>{task.type === 'dynamic' ? 'دینامیک' : 'ثابت'}</Badge>
+                    </div>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                    <div className="space-y-4 px-4 py-2 border-r-2 border-primary/20">
+                        <p className="text-muted-foreground">{task.description}</p>
+                        
+                        <div className="grid gap-4 md:grid-cols-2">
+                            <div className="space-y-4">
+                            <Label>فیلدهای تسک</Label>
+                            <div className="p-4 border rounded-md space-y-4 bg-muted/50">
+                                {task.fields && task.fields.length > 0 ? (
+                                    task.fields.map(field => <TaskFieldRenderer key={field.id} field={field} />)
+                                ) : (
+                                    <p className="text-sm text-muted-foreground">فیلد اضافه‌ای برای این تسک تعریف نشده است.</p>
+                                )}
+                                <div className="flex items-center space-x-2 space-x-reverse pt-2">
+                                    <Checkbox id={`task-completed-${task.id}`} checked={task.isCompleted} />
+                                    <Label htmlFor={`task-completed-${task.id}`} className="font-semibold">تسک انجام شد</Label>
+                                </div>
                             </div>
-                           </div>
-                        </div>
+                            </div>
 
-                        <div className="space-y-4">
-                            <div>
-                                <Label htmlFor={`notes-${task.id}`}>توضیحات و نتایج</Label>
-                                <Textarea id={`notes-${task.id}`} placeholder="مشاهدات و نتایج خود را اینجا وارد کنید..." defaultValue={task.notes} />
-                            </div>
-                            <div className="flex gap-2">
-                                <Button variant="outline" className="flex-1">
-                                    <Camera className="ml-2 h-4 w-4" />
-                                    آپلود عکس
-                                </Button>
-                                <Button variant="outline" className="flex-1">
-                                    <MapPin className="ml-2 h-4 w-4" />
-                                    ثبت موقعیت
-                                </Button>
+                            <div className="space-y-4">
+                                <div>
+                                    <Label htmlFor={`notes-${task.id}`}>توضیحات و نتایج</Label>
+                                    <Textarea id={`notes-${task.id}`} placeholder="مشاهدات و نتایج خود را اینجا وارد کنید..." defaultValue={task.notes} />
+                                </div>
+                                <div className="flex gap-2">
+                                    <Button variant="outline" className="flex-1">
+                                        <Camera className="ml-2 h-4 w-4" />
+                                        آپلود عکس
+                                    </Button>
+                                    <Button variant="outline" className="flex-1">
+                                        <MapPin className="ml-2 h-4 w-4" />
+                                        ثبت موقعیت
+                                    </Button>
+                                </div>
                             </div>
                         </div>
                     </div>
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-            ))}
-          </Accordion>
-        </CardContent>
-        <CardFooter>
-            <Button size="lg" className="w-full md:w-auto">
-                ثبت و اتمام PM
-            </Button>
-        </CardFooter>
-      </Card>
+                    </AccordionContent>
+                </AccordionItem>
+                ))}
+            </Accordion>
+            </CardContent>
+            <CardFooter>
+                <Button size="lg" className="w-full md:w-auto">
+                    ثبت و اتمام PM
+                </Button>
+            </CardFooter>
+        </Card>
+      </div>
+
+      <div className="lg:col-span-1">
+        <Card>
+            <CardHeader>
+                <CardTitle>کامنت‌ها و ارتباطات</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
+                    {pm.comments?.map((comment, index) => {
+                        const user = users.find(u => u.id === comment.userId);
+                        return (
+                             <div key={index} className="flex items-start gap-3">
+                                <Avatar className="h-9 w-9">
+                                    <AvatarImage src={user?.avatarUrl} alt={user?.name} />
+                                    <AvatarFallback>{user?.name.charAt(0)}</AvatarFallback>
+                                </Avatar>
+                                <div className="flex-1">
+                                    <div className="flex items-center justify-between">
+                                        <p className="font-semibold">{user?.name}</p>
+                                        <p className="text-xs text-muted-foreground">{new Date(comment.timestamp).toLocaleTimeString('fa-IR')}</p>
+                                    </div>
+                                    <p className="text-sm bg-muted p-3 rounded-lg mt-1">{comment.text}</p>
+                                </div>
+                            </div>
+                        )
+                    }) || <p className="text-sm text-muted-foreground text-center">کامنتی ثبت نشده است.</p>}
+                </div>
+                 <div className="relative">
+                    <Textarea placeholder="پیام خود را بنویسید..." className="pr-12" />
+                    <Button size="icon" className="absolute left-2 top-1/2 -translate-y-1/2 h-8 w-8">
+                        <Send className="h-4 w-4" />
+                    </Button>
+                </div>
+            </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

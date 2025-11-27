@@ -198,33 +198,44 @@ export const weeklyPMs: WeeklyPM[] = [
   {
     id: 'pm-1',
     weekIdentifier: '2024-W28',
-    siteId: 'site-1',
+    siteId: '201000',
     assignedTechnicianId: 'user-3',
     status: 'In Progress',
     tasks: [
       { taskId: 'task-static-1', isCompleted: true, notes: 'دمای ورودی ۲۲ و خروجی ۲۸ بود. همه فن‌ها سالم هستند.', photos: [], location: null, checklist: {'fan-ok': true}, customFields: {'temp-in': 22, 'temp-out': 28} },
       { taskId: 'task-static-2', isCompleted: false, notes: '', photos: [], location: null, checklist: {}, customFields: {} },
-      { taskId: 'task-dynamic-1', isCompleted: false, notes: '', photos: [], location: null, checklist: {}, customFields: {} },
     ],
+    crNumber: 'CR-789'
   },
   {
     id: 'pm-2',
     weekIdentifier: '2024-W28',
-    siteId: 'site-2',
-    assignedTechnicianId: 'user-3',
+    siteId: '201001',
+    assignedTechnicianId: 'user-4',
     status: 'Pending',
     tasks: [
         { taskId: 'task-static-1', isCompleted: false, notes: '', photos: [], location: null, checklist: {}, customFields: {} },
         { taskId: 'task-static-2', isCompleted: false, notes: '', photos: [], location: null, checklist: {}, customFields: {} },
     ],
+    crNumber: 'CR-790'
   },
   {
     id: 'pm-3',
     weekIdentifier: '2024-W27',
-    siteId: 'site-1',
+    siteId: '201000',
     assignedTechnicianId: 'user-3',
     status: 'Completed',
     tasks: [],
+    crNumber: 'CR-780'
+  },
+    {
+    id: 'pm-4',
+    weekIdentifier: '2024-W26',
+    siteId: '261000',
+    assignedTechnicianId: 'user-5',
+    status: 'Cancelled',
+    tasks: [],
+    crNumber: 'CR-770'
   },
 ];
 
@@ -292,21 +303,45 @@ export function getPMById(id: string) {
     const pm = weeklyPMs.find(p => p.id === id);
     if (!pm) return null;
     
-    const populatedTasks = pm.tasks.map(taskResult => {
+    // Create a deep copy to avoid modifying the original data
+    const pmCopy = JSON.parse(JSON.stringify(pm));
+
+    const populatedTasks = pmCopy.tasks.map((taskResult: any) => {
         const taskDef = tasks.find(t => t.id === taskResult.taskId);
         return { ...taskDef, ...taskResult };
     });
+    
+    const pmTaskIds = new Set(pmCopy.tasks.map((t: any) => t.taskId));
 
-    const pmTaskIds = pm.tasks.map(t => t.taskId);
-    const missingTasks = tasks.filter(t => {
-      // For site-1, include the dynamic task, otherwise only static
-      if (pm.siteId === 'site-1' && t.id === 'task-dynamic-1') return !pmTaskIds.includes(t.id);
-      return t.type === 'static' && !pmTaskIds.includes(t.id);
+    // Define which tasks should exist for a PM
+    // For now, all static tasks + dynamic tasks if applicable
+    const applicableTasks = tasks.filter(t => {
+        // Example logic: include dynamic tasks only for specific sites or conditions
+        if (t.type === 'dynamic') {
+             // Let's say dynamic tasks only apply to sites in Babol for this demo
+            const site = getSiteById(pmCopy.siteId);
+            return site?.location.includes('Babol');
+        }
+        return t.type === 'static';
     });
 
+    const missingTasks = applicableTasks
+      .filter(t => !pmTaskIds.has(t.id))
+      .map(t => ({
+          ...t, 
+          taskId: t.id, 
+          isCompleted: false, 
+          notes: '', 
+          photos: [], 
+          location: null, 
+          checklist: {}, 
+          customFields: {}
+      }));
+      
+    // Combine existing results with skeletons for missing tasks
     const allTasks = [...populatedTasks, ...missingTasks];
 
-    return { ...pm, tasks: allTasks };
+    return { ...pmCopy, tasks: allTasks };
 }
 
 export function getTechnicians() {
