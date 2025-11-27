@@ -74,11 +74,11 @@ export default function PMDetailPage({ params }: { params: { id:string } }) {
 
 
   return (
-    <div className="container mx-auto grid gap-6 lg:grid-cols-3">
-      <div className="lg:col-span-2">
+    <div className="container mx-auto grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div className="md:col-span-2 lg:col-span-2">
         <Card>
             <CardHeader>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
                     <CardTitle className="text-2xl font-bold font-headline">
                         PM هفتگی - {site?.name}
@@ -100,7 +100,7 @@ export default function PMDetailPage({ params }: { params: { id:string } }) {
                     <AccordionTrigger>
                     <div className="flex items-center gap-3">
                         {task.isCompleted ? <CheckCircle2 className="h-5 w-5 text-green-600" /> : <Circle className="h-5 w-5 text-muted-foreground" />}
-                        <span>{index + 1}. {task.title}</span>
+                        <span className="text-right flex-1">{index + 1}. {task.title}</span>
                         <Badge variant={task.type === 'dynamic' ? 'outline' : 'secondary'}>{task.type === 'dynamic' ? 'دینامیک' : 'ثابت'}</Badge>
                     </div>
                     </AccordionTrigger>
@@ -108,7 +108,7 @@ export default function PMDetailPage({ params }: { params: { id:string } }) {
                     <div className="space-y-4 px-4 py-2 border-r-2 border-primary/20">
                         <p className="text-muted-foreground">{task.description}</p>
                         
-                        <div className="grid gap-4 md:grid-cols-2">
+                        <div className="grid gap-6 md:grid-cols-2">
                             <div className="space-y-4">
                             <Label>فیلدهای تسک</Label>
                             <div className="p-4 border rounded-md space-y-4 bg-muted/50">
@@ -129,7 +129,7 @@ export default function PMDetailPage({ params }: { params: { id:string } }) {
                                     <Label htmlFor={`notes-${task.id}`}>توضیحات و نتایج</Label>
                                     <Textarea id={`notes-${task.id}`} placeholder="مشاهدات و نتایج خود را اینجا وارد کنید..." defaultValue={task.notes} />
                                 </div>
-                                <div className="flex gap-2">
+                                <div className="flex flex-col sm:flex-row gap-2">
                                     <Button variant="outline" className="flex-1">
                                         <Camera className="ml-2 h-4 w-4" />
                                         آپلود عکس

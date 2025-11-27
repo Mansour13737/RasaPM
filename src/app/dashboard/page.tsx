@@ -40,6 +40,7 @@ import { format, startOfWeek, endOfWeek, isWithinInterval } from "date-fns";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { AISummary } from "@/components/ai-summary";
 
 const ITEMS_PER_PAGE = 9;
 
@@ -299,6 +300,8 @@ export default function DashboardPage() {
         </p>
       </header>
 
+       <AISummary pms={weeklyPMs} />
+
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -340,7 +343,7 @@ export default function DashboardPage() {
 
 
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-4">
             <div>
               <CardTitle>برنامه‌های PM</CardTitle>
               <CardDescription>
@@ -363,64 +366,66 @@ export default function DashboardPage() {
                 }}
               />
             </div>
-            <Select
-              value={selectedCity}
-              onValueChange={handleCityChange}
-            >
-              <SelectTrigger className="w-full md:w-[180px]">
-                <SelectValue placeholder="فیلتر بر اساس شهر" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">همه شهرها</SelectItem>
-                {availableCities.map((city) => (
-                  <SelectItem key={city} value={city}>
-                    {city}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select
-              value={selectedFlm}
-              onValueChange={handleFlmChange}
-            >
-              <SelectTrigger className="w-full md:w-[180px]">
-                <SelectValue placeholder="فیلتر بر اساس FLM" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">همه FLM ها</SelectItem>
-                {availableTechnicians.map((tech) => (
-                  <SelectItem key={tech.id} value={tech.id}>
-                    {tech.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-             <Popover>
-                <PopoverTrigger asChild>
-                    <Button
-                    variant={"outline"}
-                    className={cn(
-                        "w-full justify-start text-left font-normal md:w-[240px]",
-                        !selectedDate && "text-muted-foreground"
-                    )}
-                    >
-                    <CalendarIcon className="ml-2 h-4 w-4" />
-                    {selectedDate ? format(selectedDate, "PPP") : <span>فیلتر بر اساس تاریخ</span>}
-                    </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                    <Calendar
-                    mode="single"
-                    selected={selectedDate}
-                    onSelect={setSelectedDate}
-                    initialFocus
-                    />
-                </PopoverContent>
-            </Popover>
+             <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
+                <Select
+                value={selectedCity}
+                onValueChange={handleCityChange}
+                >
+                <SelectTrigger className="w-full md:w-[180px]">
+                    <SelectValue placeholder="فیلتر بر اساس شهر" />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="all">همه شهرها</SelectItem>
+                    {availableCities.map((city) => (
+                    <SelectItem key={city} value={city}>
+                        {city}
+                    </SelectItem>
+                    ))}
+                </SelectContent>
+                </Select>
+                <Select
+                value={selectedFlm}
+                onValueChange={handleFlmChange}
+                >
+                <SelectTrigger className="w-full md:w-[180px]">
+                    <SelectValue placeholder="فیلتر بر اساس FLM" />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="all">همه FLM ها</SelectItem>
+                    {availableTechnicians.map((tech) => (
+                    <SelectItem key={tech.id} value={tech.id}>
+                        {tech.name}
+                    </SelectItem>
+                    ))}
+                </SelectContent>
+                </Select>
+                <Popover>
+                    <PopoverTrigger asChild>
+                        <Button
+                        variant={"outline"}
+                        className={cn(
+                            "w-full justify-start text-left font-normal md:w-[240px]",
+                            !selectedDate && "text-muted-foreground"
+                        )}
+                        >
+                        <CalendarIcon className="ml-2 h-4 w-4" />
+                        {selectedDate ? format(selectedDate, "PPP") : <span>فیلتر بر اساس تاریخ</span>}
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                        <Calendar
+                        mode="single"
+                        selected={selectedDate}
+                        onSelect={setSelectedDate}
+                        initialFocus
+                        />
+                    </PopoverContent>
+                </Popover>
+            </div>
           </div>
 
           <Tabs defaultValue="in-progress">
-              <TabsList className="grid w-full grid-cols-4">
+              <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
                 <TabsTrigger value="in-progress">در حال انجام ({pmByStatus['In Progress']?.length || 0})</TabsTrigger>
                 <TabsTrigger value="completed">انجام شده ({pmByStatus['Completed']?.length || 0})</TabsTrigger>
                 <TabsTrigger value="pending">معلق ({pmByStatus['Pending']?.length || 0})</TabsTrigger>
