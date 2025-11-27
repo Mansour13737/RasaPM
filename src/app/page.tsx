@@ -1,11 +1,36 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/icons";
+import { useToast } from "@/hooks/use-toast";
 
 export default function LoginPage() {
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const router = useRouter();
+  const { toast } = useToast();
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (username === "management" && password === "RasaManagement") {
+      router.push("/dashboard");
+    } else if (username === "rasatech" && password === "RasaTech") {
+      router.push("/dashboard/technician");
+    } else {
+      toast({
+        variant: "destructive",
+        title: "نام کاربری یا رمز عبور اشتباه است",
+        description: "لطفا اطلاعات ورود خود را بررسی کنید.",
+      });
+    }
+  };
+
   return (
     <main className="flex items-center justify-center min-h-screen bg-muted/40">
       <Card className="w-full max-w-sm mx-auto">
@@ -17,10 +42,17 @@ export default function LoginPage() {
           <CardDescription>وارد حساب کاربری خود شوید</CardDescription>
         </CardHeader>
         <CardContent>
-          <form className="space-y-4">
+          <form className="space-y-4" onSubmit={handleLogin}>
             <div className="space-y-2">
               <Label htmlFor="username">نام کاربری</Label>
-              <Input id="username" type="text" placeholder="مثلا: management" required />
+              <Input 
+                id="username" 
+                type="text" 
+                placeholder="مثلا: management" 
+                required 
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+              />
             </div>
             <div className="space-y-2">
               <div className="flex items-center">
@@ -29,13 +61,18 @@ export default function LoginPage() {
                   رمز عبور را فراموش کرده‌اید؟
                 </Link>
               </div>
-              <Input id="password" type="password" required placeholder="••••••••" />
+              <Input 
+                id="password" 
+                type="password" 
+                required 
+                placeholder="••••••••" 
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
             </div>
-            <Link href="/dashboard" className="w-full">
-              <Button type="submit" className="w-full">
-                ورود
-              </Button>
-            </Link>
+            <Button type="submit" className="w-full">
+              ورود
+            </Button>
           </form>
         </CardContent>
       </Card>

@@ -1,0 +1,150 @@
+"use client";
+
+import Link from "next/link";
+import React, { useMemo } from "react";
+import { sites, users, weeklyPMs } from "@/lib/data";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import type { PMStatus, WeeklyPM } from "@/lib/types";
+
+// Let's assume the logged-in technician is 'user-12' (رضا قاسمی)
+const LOGGED_IN_TECHNICIAN_ID = 'user-12';
+
+function getStatusVariant(status: PMStatus) {
+  switch (status) {
+    case "Completed":
+      return "default";
+    case "In Progress":
+      return "secondary";
+    case "Cancelled":
+      return "destructive";
+    case "Pending":
+    default:
+      return "outline";
+  }
+}
+
+export default function TechnicianDashboardPage() {
+  const technician = useMemo(() => users.find(u => u.id === LOGGED_IN_TECHNICIAN_ID), []);
+  
+  const technicianPMs = useMemo(() => {
+    return weeklyPMs.filter(pm => pm.assignedTechnicianId === LOGGED_IN_TECHNICIAN_ID);
+  }, []);
+
+  const pmByStatus = useMemo(() => {
+      return technicianPMs.reduce((acc, pm) => {
+          if (!acc[pm.status]) {
+              acc[pm.status] = [];
+          }
+          acc[pm.status].push(pm);
+          return acc;
+      }, {} as Record<PMStatus, WeeklyPM[]>);
+  }, [technicianPMs]);
+
+
+  const PMTable = ({ pms }: { pms: WeeklyPM[] }) => (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>کد سایت</TableHead>
+          <TableHead>شهر</TableHead>
+          <TableHead>تاریخ شروع CR</TableHead>
+          <TableHead>تاریخ پایان CR</TableHead>
+          <TableHead>شماره CR</TableHead>
+          <TableHead>وضعیت</TableHead>
+          <TableHead>عملیات</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {pms.length > 0 ? pms.map(pm => {
+          const site = sites.find(s => s.id === pm.siteId);
+          // Simplified date logic
+          const startDate = pm.weekIdentifier; 
+          const endDate = pm.weekIdentifier; 
+
+          return (
+            <TableRow key={pm.id}>
+              <TableCell>{site?.name || 'N/A'}</TableCell>
+              <TableCell>{site?.location.split(', ')[1] || 'N/A'}</TableCell>
+              <TableCell>{startDate}</TableCell>
+              <TableCell>{endDate}</TableCell>
+              <TableCell>{pm.crNumber || 'N/A'}</TableCell>
+              <TableCell>
+                <Badge variant={getStatusVariant(pm.status)}>{pm.status}</Badge>
+              </TableCell>
+               <TableCell>
+                 <Link href={`/dashboard/pm/${pm.id}`}>
+                    <Button variant="outline" size="sm">مشاهده و انجام</Button>
+                 </Link>
+              </TableCell>
+            </TableRow>
+          )
+        }) : (
+            <TableRow>
+                <TableCell colSpan={7} className="text-center h-24">
+                    برنامه‌ای در این دسته‌بندی وجود ندارد.
+                </TableCell>
+            </TableRow>
+        )}
+      </TableBody>
+    </Table>
+  );
+
+  return (
+    <div className="container mx-auto">
+      <header className="mb-6">
+        <h1 className="text-3xl font-bold font-headline">داشبورد تکنسین</h1>
+        <p className="text-muted-foreground">
+          سلام {technician?.name}، برنامه‌های اختصاص یافته به شما در زیر آمده است.
+        </p>
+      </header>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>برنامه‌های PM شما</CardTitle>
+          <CardDescription>
+            تاریخچه برنامه‌های PM خود را مشاهده و مدیریت کنید.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Tabs defaultValue="in-progress" className="w-full">
+              <TabsList className="grid w-full grid-cols-4">
+                <TabsTrigger value="in-progress">در حال انجام ({pmByStatus['In Progress']?.length || 0})</TabsTrigger>
+                <TabsTrigger value="pending">معلق ({pmByStatus['Pending']?.length || 0})</TabsTrigger>
+                <TabsTrigger value="completed">انجام شده ({pmByStatus['Completed']?.length || 0})</TabsTrigger>
+                <TabsTrigger value="cancelled">باطل شده ({pmByStatus['Cancelled']?.length || 0})</TabsTrigger>
+              </TabsList>
+              <TabsContent value="in-progress">
+                <PMTable pms={pmByStatus['In Progress'] || []} />
+              </TabsContent>
+               <TabsContent value="pending">
+                <PMTable pms={pmByStatus['Pending'] || []} />
+              </TabsContent>
+              <TabsContent value="completed">
+                <PMTable pms={pmByStatus['Completed'] || []} />
+              </TabsContent>
+               <TabsContent value="cancelled">
+                <PMTable pms={pmByStatus['Cancelled'] || []} />
+              </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
