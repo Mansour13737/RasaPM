@@ -72,6 +72,7 @@ const Navbar = () => {
                 <DropdownMenuItem onClick={() => {
                   if (typeof window !== 'undefined') {
                     localStorage.removeItem('userRole');
+                    localStorage.removeItem('userEmail');
                   }
                 }} asChild>
                   <Link href="/">
@@ -127,13 +128,22 @@ export default function TechnicianDashboardLayout({
   useEffect(() => {
     setIsClient(true);
     const userRole = getRole();
-    if (userRole !== 'technician') {
+    if (userRole !== 'Technician') {
       router.push('/');
     }
   }, [router]);
   
   if (!isClient) {
     return null; // Or a loading spinner
+  }
+  
+  const userRole = getRole();
+  if (userRole !== 'Technician') {
+    return (
+        <div className="flex items-center justify-center min-h-screen">
+          <p>در حال هدایت به صفحه ورود...</p>
+        </div>
+    );
   }
 
   return (

@@ -1,39 +1,32 @@
 "use client";
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/context/AuthContext';
-import { users } from '@/lib/data';
 import { Logo } from '@/components/icons';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 
 export default function HomePage() {
-  const { user, loading } = useAuth();
   const router = useRouter();
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!loading && user && user.email) {
-      const currentUser = users.find(u => u.email === user.email);
-      if (currentUser) {
-        if (currentUser.role === 'Admin' || currentUser.role === 'PM') {
-          router.replace('/management-dashboard');
-        } else if (currentUser.role === 'Technician') {
-          router.replace('/tech-dashboard');
-        }
+    const userRole = localStorage.getItem('userRole');
+    if (userRole) {
+      if (userRole === 'Admin' || userRole === 'PM') {
+        router.replace('/management-dashboard');
+      } else if (userRole === 'Technician') {
+        router.replace('/tech-dashboard');
+      } else {
+        setLoading(false);
       }
+    } else {
+      setLoading(false);
     }
-  }, [user, loading, router]);
+  }, [router]);
 
   if (loading) {
     return <div className="flex items-center justify-center min-h-screen"><p>در حال بارگذاری...</p></div>;
-  }
-
-  if (user) {
-    const currentUser = users.find(u => u.email === user.email);
-    if(currentUser){
-        return <div className="flex items-center justify-center min-h-screen"><p>در حال هدایت به داشبورد شما...</p></div>;
-    }
   }
 
   return (
@@ -47,9 +40,6 @@ export default function HomePage() {
             <div className="space-x-4">
                 <Link href="/login">
                     <Button>ورود</Button>
-                </Link>
-                <Link href="/signup">
-                    <Button variant="secondary">ثبت نام</Button>
                 </Link>
             </div>
         </div>

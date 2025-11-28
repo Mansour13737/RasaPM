@@ -41,7 +41,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { AISummary } from "@/components/ai-summary";
 import { useToast } from "@/hooks/use-toast";
-import withAuth from '@/components/withAuth';
 
 const ITEMS_PER_PAGE = 9;
 
@@ -196,7 +195,7 @@ const NewPMSheet = ({ onNewPM }: { onNewPM: () => void}) => {
 };
 
 
-function ManagementDashboardPage() {
+export default function ManagementDashboardPage() {
   const [allPMs, setAllPMs] = useState([...weeklyPMs]);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
@@ -479,5 +478,3 @@ function ManagementDashboardPage() {
     </div>
   );
 }
-
-export default withAuth(ManagementDashboardPage);

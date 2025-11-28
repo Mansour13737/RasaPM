@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { sites, users, weeklyPMs } from "@/lib/data";
 import {
   Card,
@@ -21,10 +21,8 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import type { PMStatus, WeeklyPM } from "@/lib/types";
+import type { PMStatus, WeeklyPM, User } from "@/lib/types";
 import { format, endOfWeek } from "date-fns";
-import withAuth from '@/components/withAuth';
-import { useAuth } from "@/context/AuthContext";
 
 function getWeekDate(weekIdentifier: string): Date {
     const [year, week] = weekIdentifier.split('-W').map(Number);
@@ -48,12 +46,19 @@ function getStatusVariant(status: PMStatus) {
   }
 }
 
-function TechnicianDashboardPage() {
-  const { user } = useAuth();
-  const technician = useMemo(() => {
-    if (!user || !user.email) return null;
-    return users.find(u => u.email === user.email);
-  }, [user]);
+export default function TechnicianDashboardPage() {
+  const [technician, setTechnician] = useState<User | null>(null);
+
+  useEffect(() => {
+    const userEmail = localStorage.getItem('userEmail');
+    if (userEmail) {
+        const currentUser = users.find(u => u.email === userEmail);
+        if (currentUser) {
+            setTechnician(currentUser);
+        }
+    }
+  }, []);
+
 
   const technicianPMs = useMemo(() => {
     if (!technician) return [];
@@ -124,7 +129,7 @@ function TechnicianDashboardPage() {
              <header className="mb-6">
                 <h1 className="text-3xl font-bold font-headline">داشبورد تکنسین</h1>
                 <p className="text-muted-foreground">
-                    کاربر تکنسین یافت نشد. لطفا با ادمین تماس بگیرید.
+                    در حال بارگذاری اطلاعات کاربر...
                 </p>
             </header>
         </div>
@@ -173,5 +178,3 @@ function TechnicianDashboardPage() {
     </div>
   );
 }
-
-export default withAuth(TechnicianDashboardPage);

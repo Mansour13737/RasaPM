@@ -71,6 +71,7 @@ const Navbar = () => {
                 <DropdownMenuItem onClick={() => {
                   if (typeof window !== 'undefined') {
                     localStorage.removeItem('userRole');
+                    localStorage.removeItem('userEmail');
                   }
                 }} asChild>
                   <Link href="/">
@@ -126,7 +127,7 @@ export default function ManagementDashboardLayout({
   useEffect(() => {
     setIsClient(true);
     const userRole = getRole();
-    if (userRole !== 'admin') {
+    if (userRole !== 'Admin' && userRole !== 'PM') {
       router.push('/');
     }
   }, [router]);
@@ -134,6 +135,16 @@ export default function ManagementDashboardLayout({
   if (!isClient) {
     return null; // Or a loading spinner
   }
+
+  const userRole = getRole();
+  if (userRole !== 'Admin' && userRole !== 'PM') {
+    return (
+       <div className="flex items-center justify-center min-h-screen">
+          <p>در حال هدایت به صفحه ورود...</p>
+        </div>
+    );
+  }
+
 
   return (
     <div className="flex flex-col min-h-screen bg-muted/40">

@@ -1,7 +1,6 @@
 import type {Metadata, Viewport} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
-import { AuthProvider } from '@/context/AuthContext';
 
 const APP_NAME = "SiteWise PM";
 const APP_DESCRIPTION = "یک اپلیکیشن PWA برای مدیریت PMهای هفتگی سایت‌ها.";
@@ -38,9 +37,7 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased">
-        <AuthProvider>
-          {children}
-        </AuthProvider>
+        {children}
         <Toaster />
       </body>
     </html>
