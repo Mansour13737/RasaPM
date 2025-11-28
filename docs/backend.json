@@ -1,0 +1,108 @@
+{
+    "entities": {
+        "User": {
+            "title": "User",
+            "description": "A user of the application.",
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "The user's full name."
+                },
+                "email": {
+                    "type": "string",
+                    "format": "email",
+                    "description": "The user's email address."
+                },
+                "role": {
+                    "type": "string",
+                    "description": "The user's role.",
+                    "enum": ["Admin", "PM", "Technician"]
+                },
+                "avatarUrl": {
+                    "type": "string",
+                    "format": "uri",
+                    "description": "URL of the user's avatar image."
+                }
+            },
+            "required": ["name", "email", "role"]
+        },
+        "Site": {
+            "title": "Site",
+            "description": "A telecommunications site.",
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "The name of the site."
+                },
+                "location": {
+                    "type": "string",
+                    "description": "The geographical location of the site (e.g., 'Province, City')."
+                },
+                "imageUrl": {
+                    "type": "string",
+                    "format": "uri",
+                    "description": "URL of an image of the site."
+                },
+                "imageHint": {
+                    "type": "string",
+                    "description": "A hint for AI image generation."
+                },
+                "technicianId": {
+                    "type": "string",
+                    "description": "The ID of the technician assigned to the site."
+                }
+            },
+            "required": ["name", "location", "technicianId"]
+        },
+        "WeeklyPM": {
+            "title": "Weekly PM",
+            "description": "A weekly preventive maintenance plan.",
+            "type": "object",
+            "properties": {
+                "weekIdentifier": {
+                    "type": "string",
+                    "description": "Identifier for the week, e.g., '2024-W28'."
+                },
+                "siteId": {
+                    "type": "string"
+                },
+                "assignedTechnicianId": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string",
+                    "enum": ["Pending", "In Progress", "Completed", "Reviewed", "Cancelled"]
+                },
+                "crNumber": {
+                    "type": "string"
+                }
+            },
+            "required": ["weekIdentifier", "siteId", "status"]
+        }
+    },
+    "auth": {
+        "providers": ["password"]
+    },
+    "firestore": {
+        "/users/{userId}": {
+            "schema": {
+                "$ref": "#/entities/User"
+            },
+            "description": "Stores public profile information for each user."
+        },
+        "/sites/{siteId}": {
+            "schema": {
+                "$ref": "#/entities/Site"
+            },
+            "description": "Stores information about each telecommunications site."
+        },
+        "/pms/{pmId}": {
+            "schema": {
+                "$ref": "#/entities/WeeklyPM"
+            },
+            "description": "Stores weekly preventive maintenance plans."
+        }
+    }
+}
