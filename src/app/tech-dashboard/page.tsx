@@ -23,10 +23,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import type { PMStatus, WeeklyPM } from "@/lib/types";
 import { format, endOfWeek } from "date-fns";
-
-
-// Let's assume the logged-in technician is 'user-12' (رضا قاسمی)
-const LOGGED_IN_TECHNICIAN_ID = 'user-12';
+import withAuth from '@/components/withAuth';
+import { useAuth } from "@/context/AuthContext";
 
 function getWeekDate(weekIdentifier: string): Date {
     const [year, week] = weekIdentifier.split('-W').map(Number);
@@ -50,12 +48,17 @@ function getStatusVariant(status: PMStatus) {
   }
 }
 
-export default function TechnicianDashboardPage() {
-  const technician = useMemo(() => users.find(u => u.id === LOGGED_IN_TECHNICIAN_ID), []);
-  
+function TechnicianDashboardPage() {
+  const { user } = useAuth();
+  const technician = useMemo(() => {
+    if (!user || !user.email) return null;
+    return users.find(u => u.email === user.email);
+  }, [user]);
+
   const technicianPMs = useMemo(() => {
-    return weeklyPMs.filter(pm => pm.assignedTechnicianId === LOGGED_IN_TECHNICIAN_ID);
-  }, []);
+    if (!technician) return [];
+    return weeklyPMs.filter(pm => pm.assignedTechnicianId === technician.id);
+  }, [technician]);
 
   const pmByStatus = useMemo(() => {
       return technicianPMs.reduce((acc, pm) => {
@@ -114,6 +117,19 @@ export default function TechnicianDashboardPage() {
       </TableBody>
     </Table>
   );
+  
+  if (!technician) {
+    return (
+        <div className="container mx-auto">
+             <header className="mb-6">
+                <h1 className="text-3xl font-bold font-headline">داشبورد تکنسین</h1>
+                <p className="text-muted-foreground">
+                    کاربر تکنسین یافت نشد. لطفا با ادمین تماس بگیرید.
+                </p>
+            </header>
+        </div>
+    )
+  }
 
   return (
     <div className="container mx-auto">
@@ -157,3 +173,5 @@ export default function TechnicianDashboardPage() {
     </div>
   );
 }
+
+export default withAuth(TechnicianDashboardPage);

@@ -1,83 +1,58 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Logo } from "@/components/icons";
-import { useToast } from "@/hooks/use-toast";
-import Link from "next/link";
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
+import { users } from '@/lib/data';
+import { Logo } from '@/components/icons';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 
-export default function LoginPage() {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
+export default function HomePage() {
+  const { user, loading } = useAuth();
   const router = useRouter();
-  const { toast } = useToast();
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (username === "management" && password === "RasaManagement") {
-      localStorage.setItem("userRole", "admin");
-      router.push("/management-dashboard");
-    } else if (username === "rasatech" && password === "RasaTech") {
-      localStorage.setItem("userRole", "technician");
-      router.push("/tech-dashboard");
-    } else {
-      toast({
-        variant: "destructive",
-        title: "نام کاربری یا رمز عبور اشتباه است",
-        description: "لطفا اطلاعات ورود خود را بررسی کنید.",
-      });
+  useEffect(() => {
+    if (!loading && user && user.email) {
+      const currentUser = users.find(u => u.email === user.email);
+      if (currentUser) {
+        if (currentUser.role === 'Admin' || currentUser.role === 'PM') {
+          router.replace('/management-dashboard');
+        } else if (currentUser.role === 'Technician') {
+          router.replace('/tech-dashboard');
+        }
+      }
     }
-  };
+  }, [user, loading, router]);
+
+  if (loading) {
+    return <div className="flex items-center justify-center min-h-screen"><p>در حال بارگذاری...</p></div>;
+  }
+
+  if (user) {
+    const currentUser = users.find(u => u.email === user.email);
+    if(currentUser){
+        return <div className="flex items-center justify-center min-h-screen"><p>در حال هدایت به داشبورد شما...</p></div>;
+    }
+  }
 
   return (
     <main className="flex items-center justify-center min-h-screen bg-muted/40">
-      <Card className="w-full max-w-sm mx-auto">
-        <CardHeader className="text-center">
-          <div className="flex justify-center items-center mb-4">
-             <Logo className="h-10 w-10 text-primary" />
-          </div>
-          <CardTitle className="text-2xl font-headline">SiteWise PM</CardTitle>
-          <CardDescription>وارد حساب کاربری خود شوید</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form className="space-y-4" onSubmit={handleLogin}>
-            <div className="space-y-2">
-              <Label htmlFor="username">نام کاربری</Label>
-              <Input 
-                id="username" 
-                type="text" 
-                placeholder="مثلا: management" 
-                required 
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-              />
+        <div className="text-center">
+            <div className="flex justify-center items-center mb-4">
+                <Logo className="h-16 w-16 text-primary" />
             </div>
-            <div className="space-y-2">
-              <div className="flex items-center">
-                <Label htmlFor="password">رمز عبور</Label>
-                <Link href="#" className="mr-auto inline-block text-sm underline">
-                  رمز عبور را فراموش کرده‌اید؟
+            <h1 className="text-4xl font-bold font-headline mb-2">به SiteWise PM خوش آمدید</h1>
+            <p className="text-lg text-muted-foreground mb-6">یک اپلیکیشن PWA برای مدیریت PMهای هفتگی سایت‌ها.</p>
+            <div className="space-x-4">
+                <Link href="/login">
+                    <Button>ورود</Button>
                 </Link>
-              </div>
-              <Input 
-                id="password" 
-                type="password" 
-                required 
-                placeholder="••••••••" 
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
+                <Link href="/signup">
+                    <Button variant="secondary">ثبت نام</Button>
+                </Link>
             </div>
-            <Button type="submit" className="w-full">
-              ورود
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+        </div>
     </main>
   );
 }
