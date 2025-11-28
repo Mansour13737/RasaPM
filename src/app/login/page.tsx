@@ -10,7 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { users } from '@/lib/data';
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -20,36 +20,41 @@ export default function LoginPage() {
     e.preventDefault();
     setError(null);
     
-    const foundUser = users.find(u => u.email === email);
+    // In a real app, you'd use a service like Firebase Auth.
+    // This is a mock authentication.
+    const normalizedUsername = username.toLowerCase();
+    
+    // Simplified logic for roles
+    let role: 'Admin' | 'PM' | 'Technician' | null = null;
+    let successfulLogin = false;
 
-    // This is a mock authentication. In a real app, you'd use a service like Firebase Auth.
-    if (foundUser) {
-        // Mock password check - NOTE: In a real app, never handle passwords this way.
-        let passwordMatch = false;
-        if(foundUser.role === 'Admin' && password === 'RasaManagement') passwordMatch = true;
-        if(foundUser.role === 'PM' && password === 'RasaManagement') passwordMatch = true;
-        if(foundUser.role === 'Technician' && password === 'RasaTech') passwordMatch = true;
+    if (normalizedUsername === 'management' && password === 'RasaManagement') {
+        role = 'Admin'; // Or PM, depends on desired mock logic
+        successfulLogin = true;
+    } else if (normalizedUsername === 'rasatech' && password === 'RasaTech') {
+        role = 'Technician';
+        successfulLogin = true;
+    }
+    
+    if (successfulLogin && role) {
+        toast({
+            title: 'ورود موفق',
+            description: `خوش آمدید ${username}`,
+        });
         
-        if (passwordMatch) {
-            toast({
-                title: 'ورود موفق',
-                description: `خوش آمدید ${foundUser.name}`,
-            });
-            // Simulate session/role management
-            if (typeof window !== 'undefined') {
-                localStorage.setItem('userRole', foundUser.role);
-                localStorage.setItem('userEmail', foundUser.email);
-            }
-            if (foundUser.role === 'Admin' || foundUser.role === 'PM') {
-                router.push('/management-dashboard');
-            } else {
-                router.push('/tech-dashboard');
-            }
+        // Simulate session/role management
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('userRole', role);
+            localStorage.setItem('username', username);
+        }
+        
+        if (role === 'Admin' || role === 'PM') {
+            router.push('/management-dashboard');
         } else {
-             setError('ایمیل یا رمز عبور اشتباه است.');
+            router.push('/tech-dashboard');
         }
     } else {
-      setError('کاربری با این ایمیل یافت نشد.');
+      setError('نام کاربری یا رمز عبور اشتباه است.');
     }
   };
 
@@ -59,20 +64,20 @@ export default function LoginPage() {
         <CardHeader>
           <CardTitle className="text-2xl">ورود</CardTitle>
           <CardDescription>
-            برای ورود به حساب کاربری خود، ایمیل و رمز عبور خود را وارد کنید.
+            برای ورود به حساب کاربری خود، نام کاربری و رمز عبور خود را وارد کنید.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">ایمیل</Label>
+              <Label htmlFor="username">نام کاربری</Label>
               <Input
-                id="email"
-                type="email"
-                placeholder="m@example.com"
+                id="username"
+                type="text"
+                placeholder="مثلا: management"
                 required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
               />
             </div>
             <div className="space-y-2">
