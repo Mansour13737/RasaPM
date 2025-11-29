@@ -25,10 +25,5 @@ service cloud.firestore {
     match /pms/{pmId} {
       allow read, write: if isSignedIn();
     }
-
-    // Default deny all other reads and writes
-    match /{document=**} {
-      allow read, write: if false;
-    }
   }
 }
