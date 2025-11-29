@@ -24,7 +24,7 @@ service cloud.firestore {
     }
 
     match /pms/{pmId} {
-      allow read, write: if isSignedIn();
+      allow list, get, create, update, delete: if isSignedIn();
     }
   }
 }
