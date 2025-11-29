@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Building2, Home, LogOut, Settings, User as UserIcon } from "lucide-react";
+import { Building2, Home, LogOut, Settings, User as UserIcon, Users } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -42,6 +42,10 @@ const Navbar = () => {
                <Link href="/management-dashboard/sites" className="px-3 py-2 rounded-md text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground flex items-center gap-2">
                   <Building2 className="w-4 h-4" />
                   سایت‌ها
+               </Link>
+               <Link href="/management-dashboard/users" className="px-3 py-2 rounded-md text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground flex items-center gap-2">
+                  <Users className="w-4 h-4" />
+                  کاربران
                </Link>
             </div>
           </div>
@@ -149,7 +153,6 @@ export default function ManagementDashboardLayout({
   return (
     <div className="flex flex-col min-h-screen bg-muted/40">
         <Navbar />
-        <PageHeader />
         <main className="flex-grow container mx-auto p-4 sm:p-6">
             {children}
         </main>

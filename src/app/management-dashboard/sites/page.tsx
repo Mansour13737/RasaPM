@@ -3,12 +3,62 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { sites, users } from "@/lib/data";
+import { useEffect, useState } from "react";
+import { getSites, getUsers } from "@/lib/firestore"; // Use firestore
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import type { Site, User } from "@/lib/types";
+import { Skeleton } from "@/components/ui/skeleton";
 
 
 export default function SitesPage() {
+    const [sites, setSites] = useState<Site[]>([]);
+    const [users, setUsers] = useState<User[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchData = async () => {
+            setLoading(true);
+            try {
+                const sitesData = await getSites();
+                const usersData = await getUsers();
+                setSites(sitesData);
+                setUsers(usersData);
+            } catch (error) {
+                console.error("Failed to fetch data:", error);
+                // Optionally show a toast message here
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchData();
+    }, []);
+
+    if (loading) {
+        return (
+            <div className="container mx-auto">
+                <header className="mb-6">
+                    <Skeleton className="h-8 w-48" />
+                    <Skeleton className="h-4 w-64 mt-2" />
+                </header>
+                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                    {Array.from({ length: 8 }).map((_, i) => (
+                        <Card key={i}>
+                            <Skeleton className="h-40 w-full" />
+                            <CardHeader>
+                                <Skeleton className="h-6 w-3/4" />
+                                <Skeleton className="h-4 w-1/2" />
+                            </CardHeader>
+                            <CardContent>
+                                <Skeleton className="h-8 w-full" />
+                            </CardContent>
+                        </Card>
+                    ))}
+                 </div>
+            </div>
+        )
+    }
 
     return (
         <div className="container mx-auto">

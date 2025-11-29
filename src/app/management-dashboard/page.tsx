@@ -1,8 +1,8 @@
+
 "use client";
 
 import Link from "next/link";
-import React, { useState, useMemo } from "react";
-import { sites, users, weeklyPMs, addNewPM } from "@/lib/data";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -30,19 +30,20 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Search, Activity, CheckCircle, Clock, XCircle, Calendar as CalendarIcon, FilePlus2 } from "lucide-react";
-import type { User, PMStatus, WeeklyPM } from "@/lib/types";
+import { Search, Activity, CheckCircle, Clock, XCircle, Calendar as CalendarIcon, FilePlus2, RefreshCw } from "lucide-react";
+import type { User, PMStatus, WeeklyPM, Site } from "@/lib/types";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { format, startOfWeek, endOfWeek, isWithinInterval, getWeek } from "date-fns";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { AISummary } from "@/components/ai-summary";
 import { useToast } from "@/hooks/use-toast";
+import { getSites, getTechnicians, getWeeklyPMs, addWeeklyPM } from "@/lib/firestore";
+import { Skeleton } from "@/components/ui/skeleton";
 
-const ITEMS_PER_PAGE = 9;
 
 function getWeekDate(weekIdentifier: string): Date {
     const [year, week] = weekIdentifier.split('-W').map(Number);
@@ -68,7 +69,7 @@ function getStatusVariant(status: PMStatus) {
   }
 }
 
-const NewPMSheet = ({ onNewPM }: { onNewPM: () => void}) => {
+const NewPMSheet = ({ sites, users, onNewPM }: { sites: Site[], users: User[], onNewPM: () => void}) => {
     const [crNumber, setCrNumber] = useState('');
     const [siteId, setSiteId] = useState('');
     const [startDate, setStartDate] = useState<Date | undefined>();
@@ -76,7 +77,7 @@ const NewPMSheet = ({ onNewPM }: { onNewPM: () => void}) => {
     const [isOpen, setIsOpen] = useState(false);
     const { toast } = useToast();
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!siteId || !startDate) {
              toast({
@@ -99,7 +100,7 @@ const NewPMSheet = ({ onNewPM }: { onNewPM: () => void}) => {
         
         const year = startDate.getFullYear();
         const week = getWeek(startDate, { weekStartsOn: 1 });
-        const weekIdentifier = `${year}-W${week}`;
+        const weekIdentifier = `${year}-W${week.toString().padStart(2, '0')}`;
 
         const newPm: Omit<WeeklyPM, 'id'> = {
             weekIdentifier,
@@ -111,12 +112,14 @@ const NewPMSheet = ({ onNewPM }: { onNewPM: () => void}) => {
             comments: comment ? [{ userId: 'user-1', text: comment, timestamp: new Date().toISOString() }] : [],
         };
         
-        addNewPM(newPm);
+        await addWeeklyPM(newPm);
         onNewPM();
         
+        const technician = users.find(u => u.id === site.technicianId);
+
         toast({
             title: "پلن PM با موفقیت ایجاد شد",
-            description: `پلن برای سایت ${site.name} به تکنسین ${users.find(u => u.id === site.technicianId)?.name} اختصاص داده شد.`,
+            description: `پلن برای سایت ${site.name} به تکنسین ${technician?.name} اختصاص داده شد.`,
         });
 
         // Reset form and close sheet
@@ -196,19 +199,36 @@ const NewPMSheet = ({ onNewPM }: { onNewPM: () => void}) => {
 
 
 export default function ManagementDashboardPage() {
-  const [allPMs, setAllPMs] = useState([...weeklyPMs]);
+  const [allPMs, setAllPMs] = useState<WeeklyPM[]>([]);
+  const [sites, setSites] = useState<Site[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
+
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCity, setSelectedCity] = useState("all");
   const [selectedFlm, setSelectedFlm] = useState("all");
   const [selectedDate, setSelectedDate] = React.useState<Date>();
   
-  const forceUpdate = () => {
-    setAllPMs([...weeklyPMs]);
-  }
+  const fetchData = async () => {
+    setLoading(true);
+    const [pmsData, sitesData, usersData] = await Promise.all([
+      getWeeklyPMs(),
+      getSites(),
+      getTechnicians(), // Assuming this fetches all relevant users
+    ]);
+    setAllPMs(pmsData);
+    setSites(sitesData);
+    setUsers(usersData);
+    setLoading(false);
+  };
 
-  const allTechnicians = useMemo(() => users.filter(u => u.role === 'Technician'), []);
-  const allCities = useMemo(() => [...new Set(sites.map(s => s.location.split(', ')[1]))], []);
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const allTechnicians = useMemo(() => users.filter(u => u.role === 'Technician'), [users]);
+  const allCities = useMemo(() => [...new Set(sites.map(s => s.location.split(', ')[1]))], [sites]);
 
   const filteredPMs = useMemo(() => {
     return allPMs.filter(pm => {
@@ -232,7 +252,7 @@ export default function ManagementDashboardPage() {
 
         return matchesSearch && matchesCity && matchesFlm && matchesDate;
     });
-  }, [searchTerm, selectedCity, selectedFlm, selectedDate, allPMs]);
+  }, [searchTerm, selectedCity, selectedFlm, selectedDate, allPMs, sites]);
 
 
   const pmByStatus = useMemo(() => {
@@ -250,13 +270,13 @@ export default function ManagementDashboardPage() {
     if (selectedCity === 'all') return allTechnicians;
     const techIdsInCity = new Set(sites.filter(s => s.location.split(', ')[1] === selectedCity).map(s => s.technicianId));
     return allTechnicians.filter(t => techIdsInCity.has(t.id));
-  }, [selectedCity, allTechnicians]);
+  }, [selectedCity, allTechnicians, sites]);
 
   const availableCities = useMemo(() => {
     if (selectedFlm === 'all') return allCities;
     const citiesForTech = new Set(sites.filter(s => s.technicianId === selectedFlm).map(s => s.location.split(', ')[1]));
     return allCities.filter(c => citiesForTech.has(c));
-  }, [selectedFlm, allCities]);
+  }, [selectedFlm, allCities, sites]);
 
   const pmStats = useMemo(() => {
     return allPMs.reduce((acc, pm) => {
@@ -285,6 +305,21 @@ export default function ManagementDashboardPage() {
        }
       setCurrentPage(1);
   }
+  
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-40 w-full" />
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-24 w-full" />
+        </div>
+        <Skeleton className="h-96 w-full" />
+      </div>
+    );
+  }
 
   const PMTable = ({ pms }: { pms: WeeklyPM[] }) => (
     <Table>
@@ -300,8 +335,9 @@ export default function ManagementDashboardPage() {
         </TableRow>
       </TableHeader>
       <TableBody>
-        {pms.map(pm => {
+        {pms.length > 0 ? pms.map(pm => {
           const site = sites.find(s => s.id === pm.siteId);
+          if (!site) return null;
           const startDate = getWeekDate(pm.weekIdentifier);
           const endDate = endOfWeek(startDate, { weekStartsOn: 1 });
           return (
@@ -321,7 +357,13 @@ export default function ManagementDashboardPage() {
               </TableCell>
             </TableRow>
           )
-        })}
+        }) : (
+          <TableRow>
+            <TableCell colSpan={7} className="text-center h-24">
+              داده‌ای برای نمایش وجود ندارد.
+            </TableCell>
+          </TableRow>
+        )}
       </TableBody>
     </Table>
   );
@@ -378,7 +420,10 @@ export default function ManagementDashboardPage() {
                 برنامه‌های PM را جستجو، فیلتر و مدیریت کنید.
               </CardDescription>
             </div>
-            <NewPMSheet onNewPM={forceUpdate} />
+            <div className="flex gap-2">
+               <Button variant="outline" onClick={fetchData}><RefreshCw className="w-4 h-4" /></Button>
+               <NewPMSheet sites={sites} users={users} onNewPM={fetchData} />
+            </div>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col md:flex-row gap-4 mb-4">
