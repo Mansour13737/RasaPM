@@ -8,8 +8,18 @@ import { FirestorePermissionError } from '@/firebase/errors';
 
 export async function getUsers(db: Firestore): Promise<User[]> {
   const usersCol = collection(db, 'users');
-  const userSnapshot = await getDocs(usersCol);
-  return userSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
+  try {
+    const userSnapshot = await getDocs(usersCol);
+    return userSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
+  } catch (serverError: any) {
+    const permissionError = new FirestorePermissionError({
+      path: usersCol.path,
+      operation: 'list',
+    });
+    errorEmitter.emit('permission-error', permissionError);
+    // Return empty array or rethrow, depending on desired UX
+    return [];
+  }
 }
 
 export function addUser(db: Firestore, user: Omit<User, 'id'>): void {
@@ -54,8 +64,17 @@ export function deleteUser(db: Firestore, userId: string): void {
 
 export async function getSites(db: Firestore): Promise<Site[]> {
   const sitesCol = collection(db, 'sites');
-  const siteSnapshot = await getDocs(sitesCol);
-  return siteSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Site));
+  try {
+    const siteSnapshot = await getDocs(sitesCol);
+    return siteSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Site));
+  } catch (serverError: any) {
+    const permissionError = new FirestorePermissionError({
+        path: sitesCol.path,
+        operation: 'list',
+    });
+    errorEmitter.emit('permission-error', permissionError);
+    return [];
+  }
 }
 
 export async function getCities(db: Firestore): Promise<string[]> {
@@ -68,8 +87,17 @@ export async function getCities(db: Firestore): Promise<string[]> {
 // --- PM Management ---
 export async function getWeeklyPMs(db: Firestore): Promise<WeeklyPM[]> {
     const pmsCol = collection(db, 'pms');
-    const pmSnapshot = await getDocs(pmsCol);
-    return pmSnapshot.docs.map(d => ({ id: d.id, ...d.data() } as WeeklyPM));
+    try {
+      const pmSnapshot = await getDocs(pmsCol);
+      return pmSnapshot.docs.map(d => ({ id: d.id, ...d.data() } as WeeklyPM));
+    } catch (serverError: any) {
+        const permissionError = new FirestorePermissionError({
+            path: pmsCol.path,
+            operation: 'list',
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        return [];
+    }
 }
 
 export function addWeeklyPM(db: Firestore, pm: Omit<WeeklyPM, 'id'>): void {
@@ -98,28 +126,48 @@ export async function getTechnicians(db: Firestore): Promise<User[]> {
 
 export async function getCRsForSite(db: Firestore, siteId: string): Promise<ChangeRequest[]> {
   // This is a placeholder. In a real app, you'd query Firestore.
+  // When implemented, add permission error handling.
   return [];
 }
 
 export async function getPMById(db: Firestore, id: string): Promise<WeeklyPM | null> {
     const pmRef = doc(db, 'pms', id);
-    const pmSnap = await getDoc(pmRef);
-    if (pmSnap.exists()) {
-        return { id: pmSnap.id, ...pmSnap.data() } as WeeklyPM;
+    try {
+        const pmSnap = await getDoc(pmRef);
+        if (pmSnap.exists()) {
+            return { id: pmSnap.id, ...pmSnap.data() } as WeeklyPM;
+        }
+        return null;
+    } catch (serverError: any) {
+        const permissionError = new FirestorePermissionError({
+            path: pmRef.path,
+            operation: 'get',
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        return null;
     }
-    return null;
 }
 
 export async function getSiteById(db: Firestore, id: string): Promise<Site | null> {
     const siteRef = doc(db, 'sites', id);
-    const siteSnap = await getDoc(siteRef);
-    if (siteSnap.exists()) {
-        return { id: siteSnap.id, ...siteSnap.data() } as Site;
+    try {
+        const siteSnap = await getDoc(siteRef);
+        if (siteSnap.exists()) {
+            return { id: siteSnap.id, ...siteSnap.data() } as Site;
+        }
+        return null;
+    } catch (serverError: any) {
+        const permissionError = new FirestorePermissionError({
+            path: siteRef.path,
+            operation: 'get',
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        return null;
     }
-    return null;
 }
 
 export async function getTasks(db: Firestore): Promise<Task[]> {
     // This is a placeholder. In a real app, you'd query Firestore.
+    // When implemented, add permission error handling.
     return [];
 }

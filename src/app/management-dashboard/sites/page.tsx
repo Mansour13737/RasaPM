@@ -22,17 +22,13 @@ export default function SitesPage() {
         const fetchData = async () => {
             if (!firestore) return;
             setLoading(true);
-            try {
-                const sitesData = await getSites(firestore);
-                const usersData = await getUsers(firestore);
-                setSites(sitesData);
-                setUsers(usersData);
-            } catch (error) {
-                console.error("Failed to fetch data:", error);
-                // Optionally show a toast message here
-            } finally {
-                setLoading(false);
-            }
+            
+            const sitesData = await getSites(firestore);
+            const usersData = await getUsers(firestore);
+            setSites(sitesData);
+            setUsers(usersData);
+            
+            setLoading(false);
         };
 
         fetchData();

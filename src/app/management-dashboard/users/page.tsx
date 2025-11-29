@@ -143,14 +143,9 @@ export default function UsersPage() {
   const fetchUsers = useCallback(async () => {
     if (!firestore) return;
     setLoading(true);
-    try {
-      const usersData = await getUsers(firestore);
-      setUsers(usersData);
-    } catch (error) {
-      // This will be handled by the global error handler now
-    } finally {
-      setLoading(false);
-    }
+    const usersData = await getUsers(firestore);
+    setUsers(usersData);
+    setLoading(false);
   }, [firestore]);
 
   useEffect(() => {
@@ -159,32 +154,26 @@ export default function UsersPage() {
 
   const handleSaveUser = (userData: Omit<User, 'id'> | User) => {
     if (!firestore) return;
-    try {
-      if ('id' in userData) {
-        updateUser(firestore, userData.id, userData);
-        toast({ title: 'موفقیت', description: 'کاربر با موفقیت به‌روزرسانی شد.' });
-      } else {
-        addUser(firestore, userData);
-        toast({ title: 'موفقیت', description: 'کاربر جدید با موفقیت اضافه شد.' });
-      }
-      fetchUsers();
-      setIsSheetOpen(false);
-      setEditingUser(null);
-    } catch (error) {
-       // This will be handled by the global error handler now
+    
+    if ('id' in userData) {
+      updateUser(firestore, userData.id, userData);
+      toast({ title: 'موفقیت', description: 'کاربر با موفقیت به‌روزرسانی شد.' });
+    } else {
+      addUser(firestore, userData);
+      toast({ title: 'موفقیت', description: 'کاربر جدید با موفقیت اضافه شد.' });
     }
+    fetchUsers();
+    setIsSheetOpen(false);
+    setEditingUser(null);
   };
 
   const handleDeleteUser = () => {
     if (!deletingUser || !firestore) return;
-    try {
-      deleteUser(firestore, deletingUser.id);
-      toast({ title: 'موفقیت', description: `کاربر ${deletingUser.name} با موفقیت حذف شد.` });
-      fetchUsers();
-      setDeletingUser(null);
-    } catch (error) {
-       // This will be handled by the global error handler now
-    }
+    
+    deleteUser(firestore, deletingUser.id);
+    toast({ title: 'موفقیت', description: `کاربر ${deletingUser.name} با موفقیت حذف شد.` });
+    fetchUsers();
+    setDeletingUser(null);
   };
 
   const openAddSheet = () => {
