@@ -1,5 +1,7 @@
 import { collection, getDocs, addDoc, doc, updateDoc, deleteDoc, DocumentData, QuerySnapshot, Firestore, getDoc } from 'firebase/firestore';
 import type { User, Site, WeeklyPM, ChangeRequest, Task } from './types';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 
 // --- User Management ---
@@ -10,17 +12,42 @@ export async function getUsers(db: Firestore): Promise<User[]> {
   return userSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
 }
 
-export async function addUser(db: Firestore, user: Omit<User, 'id'>): Promise<void> {
-  await addDoc(collection(db, 'users'), user);
+export function addUser(db: Firestore, user: Omit<User, 'id'>): void {
+  const usersRef = collection(db, 'users');
+  addDoc(usersRef, user)
+    .catch(async (serverError) => {
+      const permissionError = new FirestorePermissionError({
+        path: usersRef.path,
+        operation: 'create',
+        requestResourceData: user,
+      });
+      errorEmitter.emit('permission-error', permissionError);
+    });
 }
 
-export async function updateUser(db: Firestore, userId: string, userData: Partial<User>): Promise<void> {
+export function updateUser(db: Firestore, userId: string, userData: Partial<User>): void {
   const userRef = doc(db, 'users', userId);
-  await updateDoc(userRef, userData);
+  updateDoc(userRef, userData)
+    .catch(async (serverError) => {
+        const permissionError = new FirestorePermissionError({
+            path: userRef.path,
+            operation: 'update',
+            requestResourceData: userData,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+    });
 }
 
-export async function deleteUser(db: Firestore, userId: string): Promise<void> {
-  await deleteDoc(doc(db, 'users', userId));
+export function deleteUser(db: Firestore, userId: string): void {
+  const userRef = doc(db, 'users', userId);
+  deleteDoc(userRef)
+    .catch(async (serverError) => {
+        const permissionError = new FirestorePermissionError({
+            path: userRef.path,
+            operation: 'delete',
+        });
+        errorEmitter.emit('permission-error', permissionError);
+    });
 }
 
 // --- Site Management ---
@@ -45,8 +72,17 @@ export async function getWeeklyPMs(db: Firestore): Promise<WeeklyPM[]> {
     return pmSnapshot.docs.map(d => ({ id: d.id, ...d.data() } as WeeklyPM));
 }
 
-export async function addWeeklyPM(db: Firestore, pm: Omit<WeeklyPM, 'id'>): Promise<void> {
-    await addDoc(collection(db, 'pms'), pm);
+export function addWeeklyPM(db: Firestore, pm: Omit<WeeklyPM, 'id'>): void {
+    const pmsRef = collection(db, 'pms');
+    addDoc(pmsRef, pm)
+        .catch(async (serverError) => {
+            const permissionError = new FirestorePermissionError({
+                path: pmsRef.path,
+                operation: 'create',
+                requestResourceData: pm,
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        });
 }
 
 

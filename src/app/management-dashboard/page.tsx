@@ -80,8 +80,9 @@ const NewPMSheet = ({ sites, users, onNewPM }: { sites: Site[], users: User[], o
     const [isOpen, setIsOpen] = useState(false);
     const { toast } = useToast();
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+        if (!firestore) return;
         if (!siteId || !startDate) {
              toast({
                 variant: "destructive",
@@ -115,7 +116,7 @@ const NewPMSheet = ({ sites, users, onNewPM }: { sites: Site[], users: User[], o
             comments: comment ? [{ userId: 'user-1', text: comment, timestamp: new Date().toISOString() }] : [],
         };
         
-        await addWeeklyPM(firestore, newPm);
+        addWeeklyPM(firestore, newPm);
         onNewPM();
         
         const technician = users.find(u => u.id === site.technicianId);

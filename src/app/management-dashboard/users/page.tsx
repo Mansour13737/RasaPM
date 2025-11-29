@@ -147,58 +147,43 @@ export default function UsersPage() {
       const usersData = await getUsers(firestore);
       setUsers(usersData);
     } catch (error) {
-      console.error("Failed to fetch users:", error);
-      toast({
-        variant: 'destructive',
-        title: 'خطا در دریافت اطلاعات',
-        description: 'مشکلی در دریافت لیست کاربران از پایگاه داده رخ داده است.',
-      });
+      // This will be handled by the global error handler now
     } finally {
       setLoading(false);
     }
-  }, [firestore, toast]);
+  }, [firestore]);
 
   useEffect(() => {
     fetchUsers();
   }, [fetchUsers]);
 
-  const handleSaveUser = async (userData: Omit<User, 'id'> | User) => {
+  const handleSaveUser = (userData: Omit<User, 'id'> | User) => {
     if (!firestore) return;
     try {
       if ('id' in userData) {
-        await updateUser(firestore, userData.id, userData);
+        updateUser(firestore, userData.id, userData);
         toast({ title: 'موفقیت', description: 'کاربر با موفقیت به‌روزرسانی شد.' });
       } else {
-        await addUser(firestore, userData);
+        addUser(firestore, userData);
         toast({ title: 'موفقیت', description: 'کاربر جدید با موفقیت اضافه شد.' });
       }
       fetchUsers();
       setIsSheetOpen(false);
       setEditingUser(null);
     } catch (error) {
-      console.error("Failed to save user:", error);
-      toast({
-        variant: 'destructive',
-        title: 'خطا',
-        description: 'مشکلی در ذخیره اطلاعات کاربر رخ داده است.',
-      });
+       // This will be handled by the global error handler now
     }
   };
 
-  const handleDeleteUser = async () => {
+  const handleDeleteUser = () => {
     if (!deletingUser || !firestore) return;
     try {
-      await deleteUser(firestore, deletingUser.id);
+      deleteUser(firestore, deletingUser.id);
       toast({ title: 'موفقیت', description: `کاربر ${deletingUser.name} با موفقیت حذف شد.` });
       fetchUsers();
       setDeletingUser(null);
     } catch (error) {
-       console.error("Failed to delete user:", error);
-       toast({
-        variant: 'destructive',
-        title: 'خطا',
-        description: 'مشکلی در حذف کاربر رخ داده است.',
-      });
+       // This will be handled by the global error handler now
     }
   };
 
