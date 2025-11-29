@@ -45,6 +45,7 @@ import type { User, UserRole } from '@/lib/types';
 import { getUsers, addUser, updateUser, deleteUser } from '@/lib/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useFirestore } from '@/firebase';
 
 const UserForm = ({
   user,
@@ -131,6 +132,7 @@ const UserForm = ({
 };
 
 export default function UsersPage() {
+  const firestore = useFirestore();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
@@ -139,9 +141,10 @@ export default function UsersPage() {
   const { toast } = useToast();
 
   const fetchUsers = useCallback(async () => {
+    if (!firestore) return;
     setLoading(true);
     try {
-      const usersData = await getUsers();
+      const usersData = await getUsers(firestore);
       setUsers(usersData);
     } catch (error) {
       console.error("Failed to fetch users:", error);
@@ -153,19 +156,20 @@ export default function UsersPage() {
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, [firestore, toast]);
 
   useEffect(() => {
     fetchUsers();
   }, [fetchUsers]);
 
   const handleSaveUser = async (userData: Omit<User, 'id'> | User) => {
+    if (!firestore) return;
     try {
       if ('id' in userData) {
-        await updateUser(userData.id, userData);
+        await updateUser(firestore, userData.id, userData);
         toast({ title: 'موفقیت', description: 'کاربر با موفقیت به‌روزرسانی شد.' });
       } else {
-        await addUser(userData);
+        await addUser(firestore, userData);
         toast({ title: 'موفقیت', description: 'کاربر جدید با موفقیت اضافه شد.' });
       }
       fetchUsers();
@@ -182,9 +186,9 @@ export default function UsersPage() {
   };
 
   const handleDeleteUser = async () => {
-    if (!deletingUser) return;
+    if (!deletingUser || !firestore) return;
     try {
-      await deleteUser(deletingUser.id);
+      await deleteUser(firestore, deletingUser.id);
       toast({ title: 'موفقیت', description: `کاربر ${deletingUser.name} با موفقیت حذف شد.` });
       fetchUsers();
       setDeletingUser(null);

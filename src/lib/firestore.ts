@@ -1,99 +1,89 @@
-
-import { collection, getDocs, addDoc, doc, updateDoc, deleteDoc, DocumentData, QuerySnapshot } from 'firebase/firestore';
-import { useFirestore } from '@/firebase';
+import { collection, getDocs, addDoc, doc, updateDoc, deleteDoc, DocumentData, QuerySnapshot, Firestore, getDoc } from 'firebase/firestore';
 import type { User, Site, WeeklyPM, ChangeRequest, Task } from './types';
-
-// Note: This is a placeholder for the actual firestore instance.
-// In a real component, you would get this from the Firebase context.
-// This is just to make the functions type-check.
-let db: any;
-function getDb() {
-  if (!db) {
-    db = useFirestore();
-  }
-  return db;
-}
 
 
 // --- User Management ---
 
-export async function getUsers(): Promise<User[]> {
-  const firestore = getDb();
-  const usersCol = collection(firestore, 'users');
+export async function getUsers(db: Firestore): Promise<User[]> {
+  const usersCol = collection(db, 'users');
   const userSnapshot = await getDocs(usersCol);
   return userSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
 }
 
-export async function addUser(user: Omit<User, 'id'>): Promise<void> {
-  const firestore = getDb();
-  await addDoc(collection(firestore, 'users'), user);
+export async function addUser(db: Firestore, user: Omit<User, 'id'>): Promise<void> {
+  await addDoc(collection(db, 'users'), user);
 }
 
-export async function updateUser(userId: string, userData: Partial<User>): Promise<void> {
-  const firestore = getDb();
-  const userRef = doc(firestore, 'users', userId);
+export async function updateUser(db: Firestore, userId: string, userData: Partial<User>): Promise<void> {
+  const userRef = doc(db, 'users', userId);
   await updateDoc(userRef, userData);
 }
 
-export async function deleteUser(userId: string): Promise<void> {
-  const firestore = getDb();
-  await deleteDoc(doc(firestore, 'users', userId));
+export async function deleteUser(db: Firestore, userId: string): Promise<void> {
+  await deleteDoc(doc(db, 'users', userId));
 }
 
 // --- Site Management ---
 
-export async function getSites(): Promise<Site[]> {
-  const firestore = getDb();
-  const sitesCol = collection(firestore, 'sites');
+export async function getSites(db: Firestore): Promise<Site[]> {
+  const sitesCol = collection(db, 'sites');
   const siteSnapshot = await getDocs(sitesCol);
   return siteSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Site));
 }
 
+export async function getCities(db: Firestore): Promise<string[]> {
+    const sites = await getSites(db);
+    const cities = new Set(sites.map(s => s.location.split(', ')[1]).filter(Boolean));
+    return Array.from(cities);
+}
+
+
 // --- PM Management ---
-export async function getWeeklyPMs(): Promise<WeeklyPM[]> {
-    const firestore = getDb();
-    const pmsCol = collection(firestore, 'pms');
+export async function getWeeklyPMs(db: Firestore): Promise<WeeklyPM[]> {
+    const pmsCol = collection(db, 'pms');
     const pmSnapshot = await getDocs(pmsCol);
     return pmSnapshot.docs.map(d => ({ id: d.id, ...d.data() } as WeeklyPM));
 }
 
-export async function addWeeklyPM(pm: Omit<WeeklyPM, 'id'>): Promise<void> {
-    const firestore = getDb();
-    await addDoc(collection(firestore, 'pms'), pm);
+export async function addWeeklyPM(db: Firestore, pm: Omit<WeeklyPM, 'id'>): Promise<void> {
+    await addDoc(collection(db, 'pms'), pm);
 }
 
 
 // --- Technician specific data ---
 
-export async function getTechnicians(): Promise<User[]> {
-  const firestore = getDb();
-  const usersCol = collection(firestore, 'users');
-  const userSnapshot = await getDocs(usersCol);
-  return userSnapshot.docs
-    .map(doc => ({ id: doc.id, ...doc.data() } as User))
-    .filter(u => u.role === 'Technician');
+export async function getTechnicians(db: Firestore): Promise<User[]> {
+  const users = await getUsers(db);
+  return users.filter(u => u.role === 'Technician');
 }
 
 
 // --- Other data fetching (These can be expanded) ---
 
-export async function getCRsForSite(siteId: string): Promise<ChangeRequest[]> {
+export async function getCRsForSite(db: Firestore, siteId: string): Promise<ChangeRequest[]> {
   // This is a placeholder. In a real app, you'd query Firestore.
   return [];
 }
 
-export async function getPMById(id: string): Promise<WeeklyPM | null> {
-    // This is a placeholder. In a real app, you'd fetch the doc by ID.
-    const pms = await getWeeklyPMs();
-    return pms.find(pm => pm.id === id) || null;
+export async function getPMById(db: Firestore, id: string): Promise<WeeklyPM | null> {
+    const pmRef = doc(db, 'pms', id);
+    const pmSnap = await getDoc(pmRef);
+    if (pmSnap.exists()) {
+        return { id: pmSnap.id, ...pmSnap.data() } as WeeklyPM;
+    }
+    return null;
 }
 
-export async function getSiteById(id: string): Promise<Site | null> {
-    const sites = await getSites();
-    return sites.find(s => s.id === id) || null;
+export async function getSiteById(db: Firestore, id: string): Promise<Site | null> {
+    const siteRef = doc(db, 'sites', id);
+    const siteSnap = await getDoc(siteRef);
+    if (siteSnap.exists()) {
+        return { id: siteSnap.id, ...siteSnap.data() } as Site;
+    }
+    return null;
 }
 
-export async function getTasks(): Promise<Task[]> {
+export async function getTasks(db: Firestore): Promise<Task[]> {
     // This is a placeholder. In a real app, you'd query Firestore.
     return [];
 }

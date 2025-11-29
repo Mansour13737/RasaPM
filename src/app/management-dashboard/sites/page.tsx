@@ -9,19 +9,22 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import type { Site, User } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useFirestore } from "@/firebase";
 
 
 export default function SitesPage() {
+    const firestore = useFirestore();
     const [sites, setSites] = useState<Site[]>([]);
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const fetchData = async () => {
+            if (!firestore) return;
             setLoading(true);
             try {
-                const sitesData = await getSites();
-                const usersData = await getUsers();
+                const sitesData = await getSites(firestore);
+                const usersData = await getUsers(firestore);
                 setSites(sitesData);
                 setUsers(usersData);
             } catch (error) {
@@ -33,7 +36,7 @@ export default function SitesPage() {
         };
 
         fetchData();
-    }, []);
+    }, [firestore]);
 
     if (loading) {
         return (

@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import Link from "next/link";
@@ -43,6 +44,7 @@ import { AISummary } from "@/components/ai-summary";
 import { useToast } from "@/hooks/use-toast";
 import { getSites, getTechnicians, getWeeklyPMs, addWeeklyPM } from "@/lib/firestore";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useFirestore } from "@/firebase";
 
 
 function getWeekDate(weekIdentifier: string): Date {
@@ -70,6 +72,7 @@ function getStatusVariant(status: PMStatus) {
 }
 
 const NewPMSheet = ({ sites, users, onNewPM }: { sites: Site[], users: User[], onNewPM: () => void}) => {
+    const firestore = useFirestore();
     const [crNumber, setCrNumber] = useState('');
     const [siteId, setSiteId] = useState('');
     const [startDate, setStartDate] = useState<Date | undefined>();
@@ -112,7 +115,7 @@ const NewPMSheet = ({ sites, users, onNewPM }: { sites: Site[], users: User[], o
             comments: comment ? [{ userId: 'user-1', text: comment, timestamp: new Date().toISOString() }] : [],
         };
         
-        await addWeeklyPM(newPm);
+        await addWeeklyPM(firestore, newPm);
         onNewPM();
         
         const technician = users.find(u => u.id === site.technicianId);
@@ -199,6 +202,7 @@ const NewPMSheet = ({ sites, users, onNewPM }: { sites: Site[], users: User[], o
 
 
 export default function ManagementDashboardPage() {
+  const firestore = useFirestore();
   const [allPMs, setAllPMs] = useState<WeeklyPM[]>([]);
   const [sites, setSites] = useState<Site[]>([]);
   const [users, setUsers] = useState<User[]>([]);
@@ -211,11 +215,12 @@ export default function ManagementDashboardPage() {
   const [selectedDate, setSelectedDate] = React.useState<Date>();
   
   const fetchData = async () => {
+    if (!firestore) return;
     setLoading(true);
     const [pmsData, sitesData, usersData] = await Promise.all([
-      getWeeklyPMs(),
-      getSites(),
-      getTechnicians(), // Assuming this fetches all relevant users
+      getWeeklyPMs(firestore),
+      getSites(firestore),
+      getTechnicians(firestore), // Assuming this fetches all relevant users
     ]);
     setAllPMs(pmsData);
     setSites(sitesData);
@@ -225,7 +230,7 @@ export default function ManagementDashboardPage() {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [firestore]);
 
   const allTechnicians = useMemo(() => users.filter(u => u.role === 'Technician'), [users]);
   const allCities = useMemo(() => [...new Set(sites.map(s => s.location.split(', ')[1]))], [sites]);

@@ -1,8 +1,9 @@
 
+
 "use client"
 
 import Link from "next/link";
-import { getSiteById, getPMsForSite, getCRsForSite, users, sites as allSites, getTechnicians, getCities } from "@/lib/data";
+import { getSiteById, getCRsForSite, getUsers, getSites as getAllSites, getTechnicians, getCities } from "@/lib/firestore";
 import { notFound } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,12 +16,13 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import type { CRPriority, CRStatus } from "@/lib/types";
+import type { CRPriority, CRStatus, Site, WeeklyPM, ChangeRequest, User } from "@/lib/types";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { useFirestore } from "@/firebase";
 
 
 function getPriorityBadgeVariant(priority: CRPriority) {
@@ -45,12 +47,10 @@ function getStatusBadgeVariant(status: CRStatus) {
 // Admin role check placeholder
 const isAdmin = true;
 
-const NewCRSheet = () => {
+const NewCRSheet = ({allSites, cities, technicians}: {allSites: Site[], cities: string[], technicians: User[]}) => {
     const [startDate, setStartDate] = React.useState<Date>();
     const [endDate, setEndDate] = React.useState<Date>();
-    const technicians = getTechnicians();
-    const cities = getCities();
-
+    
     return (
         <Sheet>
             <SheetTrigger asChild>
@@ -175,7 +175,7 @@ const NewCRSheet = () => {
 }
 
 
-const NewPMSheet = () => {
+const NewPMSheet = ({allSites}: {allSites: Site[]}) => {
     const [startDate, setStartDate] = React.useState<Date>();
     const [endDate, setEndDate] = React.useState<Date>();
 
@@ -272,13 +272,58 @@ const NewPMSheet = () => {
 };
 
 export default function SiteDetailPage({ params }: { params: { id: string } }) {
-  const site = getSiteById(params.id);
+  const firestore = useFirestore();
+  const [site, setSite] = useState<Site | null>(null);
+  const [pms, setPms] = useState<WeeklyPM[]>([]);
+  const [crs, setCrs] = useState<ChangeRequest[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [allSites, setAllSites] = useState<Site[]>([]);
+  const [technicians, setTechnicians] = useState<User[]>([]);
+  const [cities, setCities] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+        if (!firestore) return;
+        setLoading(true);
+        const siteData = await getSiteById(firestore, params.id);
+        if(!siteData) {
+            setLoading(false);
+            return;
+        }
+        setSite(siteData);
+
+        const [pmsData, crsData, usersData, allSitesData, techniciansData, citiesData] = await Promise.all([
+            // getPMsForSite(firestore, params.id), // This function needs to be implemented
+            Promise.resolve([] as WeeklyPM[]),
+            getCRsForSite(firestore, params.id),
+            getUsers(firestore),
+            getAllSites(firestore),
+            getTechnicians(firestore),
+            getCities(firestore)
+        ]);
+
+        setPms(pmsData);
+        setCrs(crsData);
+        setUsers(usersData);
+        setAllSites(allSitesData);
+        setTechnicians(techniciansData);
+        setCities(citiesData);
+
+        setLoading(false);
+    }
+    fetchData();
+  }, [firestore, params.id]);
+
+
+  if (loading) {
+    return <div>در حال بارگذاری...</div>;
+  }
+
   if (!site) {
     notFound();
   }
 
-  const pms = getPMsForSite(params.id);
-  const crs = getCRsForSite(params.id);
 
   return (
     <div className="container mx-auto">
@@ -307,7 +352,7 @@ export default function SiteDetailPage({ params }: { params: { id: string } }) {
                 <CardTitle>لیست PMهای هفتگی</CardTitle>
                 <CardDescription>PMهای ثبت شده برای این سایت را مشاهده و مدیریت کنید.</CardDescription>
               </div>
-              {isAdmin && <NewPMSheet />}
+              {isAdmin && <NewPMSheet allSites={allSites} />}
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
@@ -341,7 +386,7 @@ export default function SiteDetailPage({ params }: { params: { id: string } }) {
                 <CardTitle>درخواست‌های تغییر (CR)</CardTitle>
                 <CardDescription>CRهای ثبت شده برای این سایت را مشاهده و مدیریت کنید.</CardDescription>
               </div>
-               {isAdmin && <NewCRSheet />}
+               {isAdmin && <NewCRSheet allSites={allSites} cities={cities} technicians={technicians} />}
             </CardHeader>
             <CardContent>
               <Table>
