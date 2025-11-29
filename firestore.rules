@@ -17,9 +17,10 @@ service cloud.firestore {
       allow write: if isSignedIn() && isOwner(userId);
     }
     
-    // Signed-in users can read and write to sites and pms collections
+    // Signed-in users can list sites, and perform CRUD on individual documents.
     match /sites/{siteId} {
-      allow read, write: if isSignedIn();
+      allow list: if isSignedIn();
+      allow get, create, update, delete: if isSignedIn();
     }
 
     match /pms/{pmId} {
