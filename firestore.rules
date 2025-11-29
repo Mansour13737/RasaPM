@@ -11,12 +11,21 @@ service cloud.firestore {
       return request.auth.uid == userId;
     }
 
-    // Example Rule: Allow users to read their own profile
+    // Users can read their own profile, and signed-in users can list all users
     match /users/{userId} {
-      allow read: if isSignedIn() && isOwner(userId);
+      allow read: if isSignedIn();
       allow write: if isSignedIn() && isOwner(userId);
     }
     
+    // Signed-in users can read and write to sites and pms collections
+    match /sites/{siteId} {
+      allow read, write: if isSignedIn();
+    }
+
+    match /pms/{pmId} {
+      allow read, write: if isSignedIn();
+    }
+
     // Default deny all other reads and writes
     match /{document=**} {
       allow read, write: if false;
