@@ -26,23 +26,30 @@ import {
   SheetClose,
 } from '@/components/ui/sheet';
 import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-    AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { PlusCircle, Edit, Trash2 } from 'lucide-react';
-import { users as initialUsers, addUser, updateUser, deleteUser } from '@/lib/data'; // Using mock data
+import { getUsers, addUser, updateUser, deleteUser } from '@/lib/firestore'; // Using firestore
 import type { User, UserRole } from '@/lib/types';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const UserForm = ({
   user,
@@ -50,17 +57,23 @@ const UserForm = ({
   onClose,
 }: {
   user?: User | null;
-  onSave: (user: Omit<User, 'id' | 'email'> | (User & {email: string})) => void;
+  onSave: (
+    user: Omit<User, 'id' | 'avatarUrl'> & {
+      id?: string;
+      password?: string;
+    }
+  ) => void;
   onClose: () => void;
 }) => {
   const [name, setName] = useState(user?.name || '');
-  const [username, setUsername] = useState(user?.username || '');
+  const [email, setEmail] = useState(user?.email || '');
+  const [password, setPassword] = useState('');
   const [role, setRole] = useState<UserRole>(user?.role || 'Technician');
   const { toast } = useToast();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !username || !role) {
+    if (!name || !email || !role || (!user && !password)) {
       toast({
         variant: 'destructive',
         title: 'خطا',
@@ -69,21 +82,23 @@ const UserForm = ({
       return;
     }
 
-    const email = user?.email || `${username.toLowerCase()}@example.com`;
+    const userData: Omit<User, 'id' | 'avatarUrl'> & {
+      id?: string;
+      password?: string;
+    } = {
+      name,
+      email,
+      role,
+    };
 
-    const userData = {
-        name,
-        username,
-        email,
-        role,
-        avatarUrl: user?.avatarUrl || `https://i.pravatar.cc/150?u=${email}`
+    if (user) {
+      userData.id = user.id;
+    }
+    if (password) {
+      userData.password = password;
     }
 
-    if(user) {
-        onSave({ id: user.id, ...userData });
-    } else {
-        onSave(userData);
-    }
+    onSave(userData);
   };
 
   return (
@@ -98,26 +113,43 @@ const UserForm = ({
         />
       </div>
       <div>
-        <Label htmlFor="username">نام کاربری</Label>
+        <Label htmlFor="email">ایمیل</Label>
         <Input
-          id="username"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          placeholder="username"
-          disabled={!!user} // Disable username editing for mock data
+          id="email"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="user@example.com"
+          disabled={!!user} // Disable email editing
         />
       </div>
+       {!user && (
+         <div>
+          <Label htmlFor="password">رمز عبور</Label>
+          <Input
+            id="password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="رمز عبور قوی انتخاب کنید"
+            required
+          />
+        </div>
+       )}
       <div>
         <Label htmlFor="role">نقش</Label>
-        <Select value={role} onValueChange={(value) => setRole(value as UserRole)}>
-            <SelectTrigger>
-                <SelectValue placeholder="نقش کاربر را انتخاب کنید" />
-            </SelectTrigger>
-            <SelectContent>
-                <SelectItem value="Technician">Technician</SelectItem>
-                <SelectItem value="PM">PM</SelectItem>
-                <SelectItem value="Admin">Admin</SelectItem>
-            </SelectContent>
+        <Select
+          value={role}
+          onValueChange={(value) => setRole(value as UserRole)}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="نقش کاربر را انتخاب کنید" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="Technician">Technician</SelectItem>
+            <SelectItem value="PM">PM</SelectItem>
+            <SelectItem value="Admin">Admin</SelectItem>
+          </SelectContent>
         </Select>
       </div>
       <div className="flex justify-end gap-2">
@@ -131,33 +163,90 @@ const UserForm = ({
 };
 
 export default function UsersPage() {
-  const [users, setUsers] = useState<User[]>(initialUsers);
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [deletingUser, setDeletingUser] = useState<User | null>(null);
   const { toast } = useToast();
 
-  const handleSaveUser = (userData: Omit<User, 'id' | 'email'> | (User & {email: string})) => {
-    if ('id' in userData) {
-      updateUser(userData.id, userData);
-      toast({ title: 'موفقیت', description: 'کاربر با موفقیت به‌روزرسانی شد.' });
-    } else {
-      // For new users, we need to generate an email if it's not part of the object
-      const newUserPayload = { ...userData, email: `${userData.username}@example.com` };
-      addUser(newUserPayload);
-      toast({ title: 'موفقیت', description: 'کاربر جدید با موفقیت اضافه شد.' });
+  const fetchUsers = async () => {
+    setLoading(true);
+    try {
+      const usersData = await getUsers();
+      setUsers(usersData);
+    } catch (error) {
+      console.error('Failed to fetch users:', error);
+      toast({
+        variant: 'destructive',
+        title: 'خطا در بارگیری کاربران',
+        description: 'مشکلی در ارتباط با پایگاه داده رخ داده است.',
+      });
+    } finally {
+      setLoading(false);
     }
-    setUsers([...initialUsers]); // Refresh the list from mock data
-    setIsSheetOpen(false);
-    setEditingUser(null);
   };
 
-  const handleDeleteUser = () => {
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const handleSaveUser = async (
+    userData: Omit<User, 'id' | 'avatarUrl'> & { id?: string, password?: string }
+  ) => {
+    try {
+      if (userData.id) {
+        await updateUser(userData.id, {
+          name: userData.name,
+          role: userData.role,
+        });
+        toast({
+          title: 'موفقیت',
+          description: 'کاربر با موفقیت به‌روزرسانی شد.',
+        });
+      } else if (userData.password) {
+        await addUser({
+            name: userData.name,
+            email: userData.email,
+            role: userData.role,
+            password: userData.password
+        });
+        toast({
+          title: 'موفقیت',
+          description: 'کاربر جدید با موفقیت اضافه شد.',
+        });
+      }
+      fetchUsers(); // Refresh the list
+      setIsSheetOpen(false);
+      setEditingUser(null);
+    } catch (error: any) {
+      console.error('Failed to save user:', error);
+      toast({
+        variant: 'destructive',
+        title: 'خطا در ذخیره کاربر',
+        description: error.message || 'لطفاً دوباره تلاش کنید.',
+      });
+    }
+  };
+
+  const handleDeleteUser = async () => {
     if (!deletingUser) return;
-    deleteUser(deletingUser.id);
-    toast({ title: 'موفقیت', description: `کاربر ${deletingUser.name} با موفقیت حذف شد.` });
-    setUsers([...initialUsers]); // Refresh the list
-    setDeletingUser(null);
+    try {
+        await deleteUser(deletingUser.id);
+        toast({
+            title: 'موفقیت',
+            description: `کاربر ${deletingUser.name} با موفقیت حذف شد.`,
+        });
+        fetchUsers(); // Refresh the list
+        setDeletingUser(null);
+    } catch (error: any) {
+        console.error('Failed to delete user:', error);
+        toast({
+            variant: 'destructive',
+            title: 'خطا در حذف کاربر',
+            description: error.message || 'لطفاً دوباره تلاش کنید.',
+      });
+    }
   };
 
   const openAddSheet = () => {
@@ -186,11 +275,18 @@ export default function UsersPage() {
           </Button>
         </CardHeader>
         <CardContent>
+          {loading ? (
+             <div className="space-y-2">
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+             </div>
+          ) : (
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>نام</TableHead>
-                <TableHead>نام کاربری</TableHead>
+                <TableHead>ایمیل</TableHead>
                 <TableHead>نقش</TableHead>
                 <TableHead>عملیات</TableHead>
               </TableRow>
@@ -199,7 +295,7 @@ export default function UsersPage() {
               {users.map((user) => (
                 <TableRow key={user.id}>
                   <TableCell>{user.name}</TableCell>
-                  <TableCell>{user.username}</TableCell>
+                  <TableCell>{user.email}</TableCell>
                   <TableCell>{user.role}</TableCell>
                   <TableCell className="space-x-2 space-x-reverse">
                     <Button
@@ -210,29 +306,43 @@ export default function UsersPage() {
                       <Edit className="h-4 w-4" />
                     </Button>
                     <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                            <Button variant="destructive" size="sm" onClick={() => setDeletingUser(user)}>
-                                <Trash2 className="h-4 w-4" />
-                            </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                            <AlertDialogHeader>
-                            <AlertDialogTitle>آیا از حذف کاربر مطمئن هستید؟</AlertDialogTitle>
-                            <AlertDialogDescription>
-                                این عمل غیرقابل بازگشت است. کاربر {deletingUser?.name} برای همیشه حذف خواهد شد.
-                            </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                            <AlertDialogCancel onClick={() => setDeletingUser(null)}>انصراف</AlertDialogCancel>
-                            <AlertDialogAction onClick={handleDeleteUser}>حذف</AlertDialogAction>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => setDeletingUser(user)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>
+                            آیا از حذف کاربر مطمئن هستید؟
+                          </AlertDialogTitle>
+                          <AlertDialogDescription>
+                            این عمل غیرقابل بازگشت است. کاربر{' '}
+                            {deletingUser?.name} برای همیشه حذف خواهد شد.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel
+                            onClick={() => setDeletingUser(null)}
+                          >
+                            انصراف
+                          </AlertDialogCancel>
+                          <AlertDialogAction onClick={handleDeleteUser}>
+                            حذف
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
                     </AlertDialog>
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
+          )}
         </CardContent>
       </Card>
 

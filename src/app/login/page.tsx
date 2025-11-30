@@ -2,45 +2,70 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import {
+  signInWithEmailAndPassword,
+} from 'firebase/auth';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { users } from '@/lib/data'; // Using mock data
+import { useAuth } from '@/firebase';
 import type { User } from '@/lib/types';
+import { getUser } from '@/lib/firestore';
 
 export default function LoginPage() {
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const { toast } = useToast();
+  const auth = useAuth();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    
-    // Mock login logic
-    const user = users.find((u) => u.username === username);
 
-    if (user && password === 'password') { // Using a simple mock password
-      // In a real app, never store sensitive data in localStorage
-      localStorage.setItem('user', JSON.stringify(user));
+    if (!auth) {
+      setError('سرویس احراز هویت در دسترس نیست.');
+      return;
+    }
+
+    try {
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+      const idTokenResult = await userCredential.user.getIdTokenResult();
+      const userRole = (idTokenResult.claims as { role?: string }).role;
       
+      const userProfile = await getUser(userCredential.user.uid);
+
+
       toast({
-          title: 'ورود موفق',
-          description: `خوش آمدید ${user.name}`,
+        title: 'ورود موفق',
+        description: `خوش آمدید ${userProfile?.name}`,
       });
-      
-      if (user.role === 'Admin' || user.role === 'PM') {
-          router.push('/management-dashboard');
-      } else {
-          router.push('/tech-dashboard');
-      }
 
-    } else {
-      setError('نام کاربری یا رمز عبور اشتباه است.');
+      if (userRole === 'Admin' || userRole === 'PM') {
+        router.push('/management-dashboard');
+      } else {
+        router.push('/tech-dashboard');
+      }
+    } catch (err: any) {
+      if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+        setError('ایمیل یا رمز عبور اشتباه است.');
+      } else {
+        setError('خطایی در هنگام ورود رخ داد. لطفاً دوباره تلاش کنید.');
+        console.error(err);
+      }
     }
   };
 
@@ -50,20 +75,20 @@ export default function LoginPage() {
         <CardHeader>
           <CardTitle className="text-2xl">ورود</CardTitle>
           <CardDescription>
-            برای ورود به حساب کاربری خود، نام کاربری و رمز عبور خود را وارد کنید. (رمز عبور: password)
+            برای ورود به حساب کاربری خود، ایمیل و رمز عبور خود را وارد کنید.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="username">نام کاربری</Label>
+              <Label htmlFor="email">ایمیل</Label>
               <Input
-                id="username"
-                type="text"
-                placeholder="نام کاربری خود را وارد کنید"
+                id="email"
+                type="email"
+                placeholder="m@example.com"
                 required
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
               />
             </div>
             <div className="space-y-2">

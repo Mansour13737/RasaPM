@@ -3,7 +3,14 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { Building2, Home, LogOut, Settings, User as UserIcon, Users } from 'lucide-react';
+import {
+  Building2,
+  Home,
+  LogOut,
+  Settings,
+  User as UserIcon,
+  Users,
+} from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,30 +24,53 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Logo } from '@/components/icons';
 import { useEffect, useState } from 'react';
 import type { User } from '@/lib/types';
+import { useUser } from '@/firebase';
+import { signOut } from 'firebase/auth';
+import { getUser } from '@/lib/firestore';
 
-const Navbar = ({ user, onSignOut }: { user: User | null, onSignOut: () => void }) => {
+const Navbar = ({
+  user,
+  onSignOut,
+}: {
+  user: User | null;
+  onSignOut: () => void;
+}) => {
   return (
     <nav className="bg-card border-b sticky top-0 z-50">
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center space-x-4 space-x-reverse">
-            <Link href="/management-dashboard" className="flex items-center gap-2">
+            <Link
+              href="/management-dashboard"
+              className="flex items-center gap-2"
+            >
               <Logo className="w-8 h-8 text-primary" />
-              <span className="text-xl font-bold font-headline">SiteWise PM</span>
+              <span className="text-xl font-bold font-headline">
+                SiteWise PM
+              </span>
             </Link>
             <div className="hidden md:flex items-baseline space-x-4 space-x-reverse">
-               <Link href="/management-dashboard" className="px-3 py-2 rounded-md text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground flex items-center gap-2">
-                 <Home className="w-4 h-4" />
-                 داشبورد
-               </Link>
-               <Link href="/management-dashboard/sites" className="px-3 py-2 rounded-md text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground flex items-center gap-2">
-                  <Building2 className="w-4 h-4" />
-                  سایت‌ها
-               </Link>
-               <Link href="/management-dashboard/users" className="px-3 py-2 rounded-md text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground flex items-center gap-2">
-                  <Users className="w-4 h-4" />
-                  کاربران
-               </Link>
+              <Link
+                href="/management-dashboard"
+                className="px-3 py-2 rounded-md text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground flex items-center gap-2"
+              >
+                <Home className="w-4 h-4" />
+                داشبورد
+              </Link>
+              <Link
+                href="/management-dashboard/sites"
+                className="px-3 py-2 rounded-md text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground flex items-center gap-2"
+              >
+                <Building2 className="w-4 h-4" />
+                سایت‌ها
+              </Link>
+              <Link
+                href="/management-dashboard/users"
+                className="px-3 py-2 rounded-md text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground flex items-center gap-2"
+              >
+                <Users className="w-4 h-4" />
+                کاربران
+              </Link>
             </div>
           </div>
           <div className="flex items-center">
@@ -48,7 +78,10 @@ const Navbar = ({ user, onSignOut }: { user: User | null, onSignOut: () => void 
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="rounded-full">
                   <Avatar>
-                    <AvatarImage src={user?.avatarUrl || ''} alt={user?.name || ''} />
+                    <AvatarImage
+                      src={user?.avatarUrl || ''}
+                      alt={user?.name || ''}
+                    />
                     <AvatarFallback>{user?.name?.charAt(0)}</AvatarFallback>
                   </Avatar>
                   <span className="sr-only">Toggle user menu</span>
@@ -58,16 +91,16 @@ const Navbar = ({ user, onSignOut }: { user: User | null, onSignOut: () => void 
                 <DropdownMenuLabel>{user?.name}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem>
-                    <UserIcon className="ml-2 h-4 w-4"/>
-                    پروفایل
+                  <UserIcon className="ml-2 h-4 w-4" />
+                  پروفایل
                 </DropdownMenuItem>
                 <DropdownMenuItem>
-                    <Settings className="ml-2 h-4 w-4"/>
-                    تنظیمات
+                  <Settings className="ml-2 h-4 w-4" />
+                  تنظیمات
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={onSignOut}>
-                  <LogOut className="ml-2 h-4 w-4"/>
+                  <LogOut className="ml-2 h-4 w-4" />
                   خروج
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -79,16 +112,17 @@ const Navbar = ({ user, onSignOut }: { user: User | null, onSignOut: () => void 
   );
 };
 
-
 const Footer = () => {
-    return (
-        <footer className="bg-card border-t mt-auto">
-            <div className="container mx-auto py-4 px-4 text-center text-muted-foreground">
-                <p>&copy; {new Date().getFullYear()} SiteWise PM. تمام حقوق محفوظ است.</p>
-            </div>
-        </footer>
-    )
-}
+  return (
+    <footer className="bg-card border-t mt-auto">
+      <div className="container mx-auto py-4 px-4 text-center text-muted-foreground">
+        <p>
+          &copy; {new Date().getFullYear()} SiteWise PM. تمام حقوق محفوظ است.
+        </p>
+      </div>
+    </footer>
+  );
+};
 
 export default function ManagementDashboardLayout({
   children,
@@ -96,45 +130,56 @@ export default function ManagementDashboardLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
+  const { user: firebaseUser, auth, loading } = useUser();
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      const userData: User = JSON.parse(storedUser);
-      if (userData.role === 'Admin' || userData.role === 'PM') {
-        setUser(userData);
+    if (!loading) {
+      if (firebaseUser) {
+        const userRole = (firebaseUser.customClaims as { role?: string })
+          ?.role;
+        if (userRole === 'Admin' || userRole === 'PM') {
+            getUser(firebaseUser.uid).then(profile => {
+                if (profile) {
+                    setUser(profile);
+                } else {
+                    // Handle case where user profile doesn't exist in Firestore
+                    if(auth) signOut(auth);
+                    router.replace('/');
+                }
+            })
+        } else {
+          router.replace('/tech-dashboard');
+        }
       } else {
-        router.replace('/tech-dashboard');
+        router.replace('/');
       }
-    } else {
-      router.replace('/');
     }
-    setLoading(false);
-  }, [router]);
+  }, [firebaseUser, loading, router, auth]);
 
-  const handleSignOut = () => {
-    localStorage.removeItem('user');
-    setUser(null);
-    router.push('/');
+  const handleSignOut = async () => {
+    if (auth) {
+      await signOut(auth);
+      setUser(null);
+      router.push('/');
+    }
   };
 
   if (loading || !user) {
     return (
-       <div className="flex items-center justify-center min-h-screen">
-          <p>در حال بارگذاری و بررسی دسترسی...</p>
-        </div>
+      <div className="flex items-center justify-center min-h-screen">
+        <p>در حال بارگذاری و بررسی دسترسی...</p>
+      </div>
     );
   }
 
   return (
     <div className="flex flex-col min-h-screen bg-muted/40">
-        <Navbar user={user} onSignOut={handleSignOut} />
-        <main className="flex-grow container mx-auto p-4 sm:p-6">
-            {children}
-        </main>
-        <Footer />
+      <Navbar user={user} onSignOut={handleSignOut} />
+      <main className="flex-grow container mx-auto p-4 sm:p-6">
+        {children}
+      </main>
+      <Footer />
     </div>
   );
 }

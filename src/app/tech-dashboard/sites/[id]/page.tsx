@@ -1,45 +1,102 @@
+'use client';
 
-"use client"
-
-import Link from "next/link";
-import { getSiteById, getPMsForSite, getCRsForSite, users } from "@/lib/data";
-import { notFound } from "next/navigation";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { ChevronLeft, CalendarDays } from "lucide-react";
-import type { CRPriority, CRStatus } from "@/lib/types";
+import Link from 'next/link';
+import { getSite, getPMsForSite, getCRsForSite, getUsers } from '@/lib/firestore';
+import { notFound } from 'next/navigation';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { ChevronLeft, CalendarDays } from 'lucide-react';
+import type { CRPriority, CRStatus, Site, WeeklyPM, ChangeRequest, User } from '@/lib/types';
+import { useEffect, useState } from 'react';
 
 function getPriorityBadgeVariant(priority: CRPriority) {
   switch (priority) {
-    case 'بحرانی': return 'destructive';
-    case 'زیاد': return 'destructive';
-    case 'متوسط': return 'secondary';
-    default: return 'outline';
+    case 'بحرانی':
+      return 'destructive';
+    case 'زیاد':
+      return 'destructive';
+    case 'متوسط':
+      return 'secondary';
+    default:
+      return 'outline';
   }
 }
 
 function getStatusBadgeVariant(status: CRStatus) {
-    switch (status) {
-      case 'باز': return 'default';
-      case 'در حال انجام': return 'secondary';
-      case 'انجام شده': return 'outline';
-      case 'رد شده': return 'destructive';
-      default: return 'default';
-    }
+  switch (status) {
+    case 'باز':
+      return 'default';
+    case 'در حال انجام':
+      return 'secondary';
+    case 'انجام شده':
+      return 'outline';
+    case 'رد شده':
+      return 'destructive';
+    default:
+      return 'default';
+  }
 }
 
+export default function TechSiteDetailPage({
+  params,
+}: {
+  params: { id: string };
+}) {
+    const [site, setSite] = useState<Site | null>(null);
+    const [pms, setPms] = useState<WeeklyPM[]>([]);
+    const [crs, setCrs] = useState<ChangeRequest[]>([]);
+    const [users, setUsers] = useState<User[]>([]);
+    const [loading, setLoading] = useState(true);
 
-export default function TechSiteDetailPage({ params }: { params: { id: string } }) {
-  const site = getSiteById(params.id);
-  if (!site) {
-    notFound();
+    useEffect(() => {
+        async function fetchData() {
+            setLoading(true);
+            try {
+                const [siteData, pmsData, crsData, usersData] = await Promise.all([
+                    getSite(params.id),
+                    getPMsForSite(params.id),
+                    getCRsForSite(params.id),
+                    getUsers()
+                ]);
+
+                if (!siteData) {
+                    notFound();
+                    return;
+                }
+                setSite(siteData);
+                setPms(pmsData);
+                setCrs(crsData);
+                setUsers(usersData);
+            } catch (error) {
+                console.error("Failed to fetch site data", error);
+                notFound();
+            } finally {
+                setLoading(false);
+            }
+        }
+        fetchData();
+    }, [params.id]);
+
+
+  if (loading || !site) {
+    return <div className="container mx-auto"><p>در حال بارگذاری...</p></div>
   }
-
-  const pms = getPMsForSite(params.id);
-  const crs = getCRsForSite(params.id);
 
   return (
     <div className="container mx-auto">
@@ -57,24 +114,39 @@ export default function TechSiteDetailPage({ params }: { params: { id: string } 
           <Card>
             <CardHeader>
               <CardTitle>لیست PMهای هفتگی</CardTitle>
-              <CardDescription>PMهای ثبت شده برای این سایت را مشاهده کنید.</CardDescription>
+              <CardDescription>
+                PMهای ثبت شده برای این سایت را مشاهده کنید.
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {pms.map(pm => (
+                {pms.map((pm) => (
                   <Link href={`/tech-dashboard/pm/${pm.id}`} key={pm.id}>
                     <div className="border rounded-lg p-4 flex justify-between items-center hover:bg-accent hover:text-accent-foreground transition-colors">
                       <div className="flex items-center gap-3">
                         <CalendarDays className="h-5 w-5 text-muted-foreground" />
                         <div>
-                          <p className="font-medium">PM هفتگی - {pm.weekIdentifier}</p>
+                          <p className="font-medium">
+                            PM هفتگی - {pm.weekIdentifier}
+                          </p>
                           <p className="text-sm text-muted-foreground">
-                            تکنسین: {pm.assignedTechnicianId ? users.find(u => u.id === pm.assignedTechnicianId)?.name : 'تعیین نشده'}
+                            تکنسین:{' '}
+                            {pm.assignedTechnicianId
+                              ? users.find(
+                                  (u) => u.id === pm.assignedTechnicianId
+                                )?.name
+                              : 'تعیین نشده'}
                           </p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Badge variant={pm.status === 'Completed' ? 'default' : 'secondary'}>{pm.status}</Badge>
+                        <Badge
+                          variant={
+                            pm.status === 'Completed' ? 'default' : 'secondary'
+                          }
+                        >
+                          {pm.status}
+                        </Badge>
                         <ChevronLeft className="h-5 w-5" />
                       </div>
                     </div>
@@ -87,8 +159,10 @@ export default function TechSiteDetailPage({ params }: { params: { id: string } 
         <TabsContent value="crs">
           <Card>
             <CardHeader>
-                <CardTitle>درخواست‌های تغییر (CR)</CardTitle>
-                <CardDescription>CRهای ثبت شده برای این سایت را مشاهده کنید.</CardDescription>
+              <CardTitle>درخواست‌های تغییر (CR)</CardTitle>
+              <CardDescription>
+                CRهای ثبت شده برای این سایت را مشاهده کنید.
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <Table>
@@ -101,16 +175,22 @@ export default function TechSiteDetailPage({ params }: { params: { id: string } 
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {crs.map(cr => (
+                  {crs.map((cr) => (
                     <TableRow key={cr.id}>
                       <TableCell className="font-medium">{cr.title}</TableCell>
                       <TableCell>
-                        <Badge variant={getPriorityBadgeVariant(cr.priority)}>{cr.priority}</Badge>
+                        <Badge variant={getPriorityBadgeVariant(cr.priority)}>
+                          {cr.priority}
+                        </Badge>
                       </TableCell>
                       <TableCell>
-                        <Badge variant={getStatusBadgeVariant(cr.status)}>{cr.status}</Badge>
+                        <Badge variant={getStatusBadgeVariant(cr.status)}>
+                          {cr.status}
+                        </Badge>
                       </TableCell>
-                      <TableCell>{new Date(cr.createdAt).toLocaleDateString('fa-IR')}</TableCell>
+                      <TableCell>
+                        {new Date(cr.createdAt).toLocaleDateString('fa-IR')}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
