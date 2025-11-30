@@ -27,7 +27,7 @@ export const users: User[] = [
     name: 'محمد کریمی',
     email: 'mohammad.karimi@example.com',
     role: 'Technician',
-    avatarUrl: `https://i-pravatar.cc/150?u=mohammad.karimi@example.com`,
+    avatarUrl: `https://i.pravatar.cc/150?u=mohammad.karimi@example.com`,
   },
   {
     id: 'user-4',
@@ -124,7 +124,7 @@ export const weeklyPMs: WeeklyPM[] = [
   },
   {
     id: 'pm-3',
-    weekIdentifier '2024-W27',
+    weekIdentifier: '2024-W27',
     siteId: 'site-1',
     assignedTechnicianId: 'user-3',
     status: 'Completed',
