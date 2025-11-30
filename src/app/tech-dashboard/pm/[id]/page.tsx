@@ -1,6 +1,6 @@
 'use client'
 
-import { getPMById, getSiteById, getUsers, updateUser, addCommentToPM } from "@/lib/firestore";
+import { getPMById, getSiteById, getUserById, getTaskById } from "@/lib/data";
 import { notFound, useRouter } from "next/navigation";
 import {
   Card,
@@ -16,23 +16,21 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
-import { Camera, MapPin, CheckCircle2, Circle, Send, Trash2 } from "lucide-react";
+import { Camera, MapPin, CheckCircle2, Circle, Send } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import type { TaskField, User, WeeklyPM, Site, TaskResult } from "@/lib/types";
+import type { TaskField, User, WeeklyPM, Site, TaskResult, Task } from "@/lib/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useEffect, useState } from "react";
-import { useFirestore, useUser } from "@/firebase";
-import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
 
-function TaskFieldRenderer({ field }: { field: TaskField }) {
+function TaskFieldRenderer({ field, onFieldChange }: { field: TaskField, onFieldChange: (value: any) => void }) {
     const id = `task-field-${field.id}`;
     switch (field.type) {
         case 'checkbox':
             return (
                 <div className="flex items-center space-x-2 space-x-reverse">
-                    <Checkbox id={id} />
+                    <Checkbox id={id} onCheckedChange={checked => onFieldChange(checked)} />
                     <Label htmlFor={id} className="font-normal">{field.label}</Label>
                 </div>
             );
@@ -40,14 +38,14 @@ function TaskFieldRenderer({ field }: { field: TaskField }) {
             return (
                 <div>
                     <Label htmlFor={id}>{field.label}</Label>
-                    <Input id={id} type="text" />
+                    <Input id={id} type="text" onChange={e => onFieldChange(e.target.value)} />
                 </div>
             );
         case 'number':
              return (
                 <div>
                     <Label htmlFor={id}>{field.label}</Label>
-                    <Input id={id} type="number" />
+                    <Input id={id} type="number" onChange={e => onFieldChange(e.target.value)} />
                 </div>
             );
         case 'photo':
@@ -66,95 +64,76 @@ function TaskFieldRenderer({ field }: { field: TaskField }) {
 }
 
 export default function PMDetailPage({ params }: { params: { id:string } }) {
-  const firestore = useFirestore();
-  const { user, loading: userLoading } = useUser();
   const router = useRouter();
   const { toast } = useToast();
 
-  const [pm, setPm] = useState<WeeklyPM | null>(null);
-  const [site, setSite] = useState<Site | null>(null);
-  const [users, setUsers] = useState<User[]>([]);
+  const [pm, setPm] = useState<WeeklyPM | undefined>(undefined);
   const [taskResults, setTaskResults] = useState<TaskResult[]>([]);
   const [newComment, setNewComment] = useState("");
-  const [loading, setLoading] = useState(true);
-
+  
   useEffect(() => {
-    const fetchData = async () => {
-        if (!firestore) return;
-        setLoading(true);
-        const pmData = await getPMById(firestore, params.id);
-        if (pmData) {
-            setPm(pmData);
-            setTaskResults(pmData.tasks || []);
-            const siteData = await getSiteById(firestore, pmData.siteId);
-            setSite(siteData);
-        }
-        const usersData = await getUsers(firestore);
-        setUsers(usersData);
-        setLoading(false);
+    const pmData = getPMById(params.id);
+    setPm(pmData);
+    if(pmData) {
+        setTaskResults(pmData.tasks);
     }
-    fetchData();
-  }, [firestore, params.id]);
+  }, [params.id])
+
+  if (!pm) {
+    return <div className="container mx-auto"><p>در حال بارگذاری...</p></div>;
+  }
+
+  const site = getSiteById(pm.siteId);
+  const technician = pm.assignedTechnicianId ? getUserById(pm.assignedTechnicianId) : null;
 
   const handleTaskCompletionChange = (taskId: string, isCompleted: boolean) => {
     setTaskResults(prevResults => {
-        const existingResult = prevResults.find(r => r.taskId === taskId);
-        if (existingResult) {
-            return prevResults.map(r => r.taskId === taskId ? { ...r, isCompleted } : r);
-        } else {
-            // This part is tricky if tasks are not pre-populated.
-            // For now, let's assume pm.tasks gives us the structure.
-            return [...prevResults, { taskId, isCompleted, notes: '', photos: [], location: null, checklist: {}, customFields: {} }];
+        const existingResultIndex = prevResults.findIndex(r => r.taskId === taskId);
+        if (existingResultIndex > -1) {
+            const newResults = [...prevResults];
+            newResults[existingResultIndex] = { ...newResults[existingResultIndex], isCompleted };
+            return newResults;
         }
+        return [...prevResults, { taskId, isCompleted, notes: '', photos: [], location: null, checklist: {}, customFields: {} }];
     });
   };
 
   const handleNotesChange = (taskId: string, notes: string) => {
      setTaskResults(prevResults => {
-        const existingResult = prevResults.find(r => r.taskId === taskId);
-        if (existingResult) {
-            return prevResults.map(r => r.taskId === taskId ? { ...r, notes } : r);
+        const existingResultIndex = prevResults.findIndex(r => r.taskId === taskId);
+        if (existingResultIndex > -1) {
+            const newResults = [...prevResults];
+            newResults[existingResultIndex] = { ...newResults[existingResultIndex], notes };
+            return newResults;
         }
-        return prevResults;
+         return [...prevResults, { taskId, isCompleted: false, notes, photos: [], location: null, checklist: {}, customFields: {} }];
     });
   }
 
   const handleAddComment = () => {
-    if (!firestore || !user || !newComment.trim()) return;
-    addCommentToPM(firestore, params.id, {
-        userId: user.uid,
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    if (!newComment.trim() || !user.id) return;
+    
+    const comment = {
+        userId: user.id,
         text: newComment,
         timestamp: new Date().toISOString()
-    });
-    // This is an optimistic update. For a better UX, we'd wait for success.
-    setPm(prev => prev ? ({ ...prev, comments: [...(prev.comments || []), { userId: user.uid, text: newComment, timestamp: new Date().toISOString() }]}) : null);
+    };
+
+    setPm(prev => prev ? ({ ...prev, comments: [...(prev.comments || []), comment] }) : undefined);
     setNewComment("");
   }
   
   const handleCompletePM = () => {
-    if (!firestore) return;
-    const updatedPMData = {
-        tasks: taskResults,
-        status: "Completed" as const
-    };
-    updateUser(firestore, params.id, updatedPMData);
+    // Here you would typically send the data to your backend
+    console.log("Completing PM with results:", taskResults);
     toast({
         title: "PM تکمیل شد",
-        description: "وضعیت و نتایج با موفقیت ثبت شدند.",
+        description: "وضعیت و نتایج با موفقیت ثبت شدند (شبیه‌سازی).",
     });
     router.push('/tech-dashboard');
   }
 
-
-  if (loading || userLoading) {
-    return <div className="container mx-auto"><p>در حال بارگذاری...</p></div>;
-  }
-  
-  if (!pm) {
-    notFound();
-  }
-
-  const technician = users.find(u => u.id === pm.assignedTechnicianId);
   const getStatusVariant = (status: string) => {
     if (status === 'Completed') return 'default';
     if (status === 'In Progress') return 'secondary';
@@ -185,18 +164,21 @@ export default function PMDetailPage({ params }: { params: { id:string } }) {
             <CardContent>
             <Accordion type="multiple" defaultValue={pm.tasks?.map(t => t.taskId) || []} className="w-full">
                 {pm.tasks.map((taskTemplate, index) => {
+                    const task = getTaskById(taskTemplate.taskId);
+                    if (!task) return null;
+
                     const taskResult = taskResults.find(r => r.taskId === taskTemplate.taskId) || { isCompleted: false, notes: ''};
                     return (
-                        <AccordionItem value={taskTemplate.taskId} key={taskTemplate.taskId}>
+                        <AccordionItem value={task.id} key={task.id}>
                             <AccordionTrigger>
                             <div className="flex items-center gap-3 w-full">
                                 {taskResult.isCompleted ? <CheckCircle2 className="h-5 w-5 text-green-600" /> : <Circle className="h-5 w-5 text-muted-foreground" />}
-                                <span className="text-right flex-1">{index + 1}. {(taskTemplate as any).title}</span>
+                                <span className="text-right flex-1">{index + 1}. {task.title}</span>
                             </div>
                             </AccordionTrigger>
                             <AccordionContent>
                             <div className="space-y-4 px-4 py-2 border-r-2 border-primary/20">
-                                <p className="text-muted-foreground">{(taskTemplate as any).description}</p>
+                                <p className="text-muted-foreground">{task.description}</p>
                                 
                                 <div className="grid gap-6 md:grid-cols-2">
                                     <div className="space-y-4">
@@ -204,23 +186,23 @@ export default function PMDetailPage({ params }: { params: { id:string } }) {
                                     <div className="p-4 border rounded-md space-y-4 bg-muted/50">
                                         <div className="flex items-center space-x-2 space-x-reverse pt-2">
                                             <Checkbox 
-                                                id={`task-completed-${taskTemplate.taskId}`} 
+                                                id={`task-completed-${task.id}`} 
                                                 checked={taskResult.isCompleted}
-                                                onCheckedChange={(checked) => handleTaskCompletionChange(taskTemplate.taskId, !!checked)}
+                                                onCheckedChange={(checked) => handleTaskCompletionChange(task.id, !!checked)}
                                             />
-                                            <Label htmlFor={`task-completed-${taskTemplate.taskId}`} className="font-semibold">تسک انجام شد</Label>
+                                            <Label htmlFor={`task-completed-${task.id}`} className="font-semibold">تسک انجام شد</Label>
                                         </div>
                                     </div>
                                     </div>
 
                                     <div className="space-y-4">
                                         <div>
-                                            <Label htmlFor={`notes-${taskTemplate.taskId}`}>توضیحات و نتایج</Label>
+                                            <Label htmlFor={`notes-${task.id}`}>توضیحات و نتایج</Label>
                                             <Textarea 
-                                                id={`notes-${taskTemplate.taskId}`} 
+                                                id={`notes-${task.id}`} 
                                                 placeholder="مشاهدات و نتایج خود را اینجا وارد کنید..." 
                                                 value={taskResult.notes}
-                                                onChange={(e) => handleNotesChange(taskTemplate.taskId, e.target.value)}
+                                                onChange={(e) => handleNotesChange(task.id, e.target.value)}
                                             />
                                         </div>
                                     </div>
@@ -248,7 +230,7 @@ export default function PMDetailPage({ params }: { params: { id:string } }) {
             <CardContent className="space-y-4">
                 <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
                     {pm.comments?.map((comment, index) => {
-                        const commentUser = users.find(u => u.id === comment.userId);
+                        const commentUser = getUserById(comment.userId);
                         return (
                              <div key={index} className="flex items-start gap-3">
                                 <Avatar className="h-9 w-9">

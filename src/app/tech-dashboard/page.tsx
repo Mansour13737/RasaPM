@@ -20,11 +20,9 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import type { PMStatus, WeeklyPM, Site } from '@/lib/types';
+import type { PMStatus, WeeklyPM, Site, User } from '@/lib/types';
+import { sites, users, weeklyPMs } from '@/lib/data';
 import { format, endOfWeek } from 'date-fns';
-import { useUser, useFirestore } from '@/firebase';
-import { getWeeklyPMs, getSites } from '@/lib/firestore';
-import { Skeleton } from '@/components/ui/skeleton';
 
 function getWeekDate(weekIdentifier: string): Date {
     const [year, week] = weekIdentifier.split('-W').map(Number);
@@ -49,33 +47,19 @@ function getStatusVariant(status: PMStatus) {
 }
 
 export default function TechnicianDashboardPage() {
-  const { user, loading: userLoading } = useUser();
-  const firestore = useFirestore();
-
-  const [allPMs, setAllPMs] = useState<WeeklyPM[]>([]);
-  const [sites, setSites] = useState<Site[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
-    const fetchData = async () => {
-        if (!firestore) return;
-        setLoading(true);
-        const [pmsData, sitesData] = await Promise.all([
-            getWeeklyPMs(firestore),
-            getSites(firestore),
-        ]);
-        setAllPMs(pmsData);
-        setSites(sitesData);
-        setLoading(false);
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
     }
-    fetchData();
-  }, [firestore]);
-
+  }, []);
 
   const technicianPMs = useMemo(() => {
     if (!user) return [];
-    return allPMs.filter(pm => pm.assignedTechnicianId === user.uid);
-  }, [user, allPMs]);
+    return weeklyPMs.filter(pm => pm.assignedTechnicianId === user.id);
+  }, [user]);
 
   const pmByStatus = useMemo(() => {
       return technicianPMs.reduce((acc, pm) => {
@@ -135,24 +119,8 @@ export default function TechnicianDashboardPage() {
     </Table>
   );
   
-  if (userLoading || loading) {
-    return (
-        <div className="container mx-auto space-y-6">
-             <header className="mb-6">
-                <Skeleton className="h-8 w-48" />
-                <Skeleton className="h-4 w-64 mt-2" />
-            </header>
-            <Card>
-                <CardHeader>
-                    <Skeleton className="h-8 w-1/3" />
-                    <Skeleton className="h-4 w-1/2" />
-                </CardHeader>
-                <CardContent>
-                    <Skeleton className="h-64 w-full" />
-                </CardContent>
-            </Card>
-        </div>
-    )
+  if (!user) {
+    return <div className="container mx-auto"><p>در حال بارگذاری اطلاعات کاربر...</p></div>
   }
 
   return (
@@ -160,7 +128,7 @@ export default function TechnicianDashboardPage() {
       <header className="mb-6">
         <h1 className="text-3xl font-bold font-headline">داشبورد تکنسین</h1>
         <p className="text-muted-foreground">
-          سلام {user?.displayName || user?.email}، برنامه‌های اختصاص یافته به شما در زیر آمده است.
+          سلام {user?.name}، برنامه‌های اختصاص یافته به شما در زیر آمده است.
         </p>
       </header>
 

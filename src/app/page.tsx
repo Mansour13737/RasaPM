@@ -5,32 +5,22 @@ import { useRouter } from 'next/navigation';
 import { Logo } from '@/components/icons';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { useUser } from '@/firebase';
 
 export default function HomePage() {
   const router = useRouter();
-  const { user, loading } = useUser();
 
   useEffect(() => {
-    if (!loading && user) {
-      user.getIdTokenResult().then(idTokenResult => {
-        const role = idTokenResult.claims.role;
-        if (role === 'Admin' || role === 'PM') {
-          router.replace('/management-dashboard');
-        } else if (role === 'Technician') {
-          router.replace('/tech-dashboard');
-        }
-      });
+    // In a real app, you'd have a more robust auth check, maybe with a context provider
+    const user = localStorage.getItem('user');
+    if (user) {
+      const userData = JSON.parse(user);
+      if (userData.role === 'Admin' || userData.role === 'PM') {
+        router.replace('/management-dashboard');
+      } else if (userData.role === 'Technician') {
+        router.replace('/tech-dashboard');
+      }
     }
-  }, [user, loading, router]);
-
-  if (loading) {
-    return <div className="flex items-center justify-center min-h-screen"><p>در حال بارگذاری...</p></div>;
-  }
-  
-  if(user) {
-    return <div className="flex items-center justify-center min-h-screen"><p>در حال هدایت به داشبورد...</p></div>;
-  }
+  }, [router]);
 
   return (
     <main className="flex items-center justify-center min-h-screen bg-muted/40">

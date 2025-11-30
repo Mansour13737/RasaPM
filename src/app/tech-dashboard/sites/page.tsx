@@ -5,61 +5,25 @@ import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useEffect, useMemo, useState } from 'react';
-import { useUser, useFirestore } from '@/firebase';
-import { getSites, getUsers } from '@/lib/firestore';
+import { getSitesForTechnician, users } from '@/lib/data';
 import type { Site, User } from '@/lib/types';
-import { Skeleton } from '@/components/ui/skeleton';
 
 export default function TechSitesPage() {
-    const { user, loading: userLoading } = useUser();
-    const firestore = useFirestore();
-    const [sites, setSites] = useState<Site[]>([]);
-    const [users, setUsers] = useState<User[]>([]);
-    const [loading, setLoading] = useState(true);
-
+    const [user, setUser] = useState<User | null>(null);
+    const [technicianSites, setTechnicianSites] = useState<Site[]>([]);
+    
     useEffect(() => {
-        const fetchData = async () => {
-            if (!firestore) return;
-            setLoading(true);
-            const [sitesData, usersData] = await Promise.all([
-                getSites(firestore),
-                getUsers(firestore)
-            ]);
-            setSites(sitesData);
-            setUsers(usersData);
-            setLoading(false);
-        };
-        fetchData();
-    }, [firestore]);
+        const storedUser = localStorage.getItem('user');
+        if (storedUser) {
+            const userData = JSON.parse(storedUser);
+            setUser(userData);
+            setTechnicianSites(getSitesForTechnician(userData.id));
+        }
+    }, []);
 
-    const technicianSites = useMemo(() => {
-        if (!user) return [];
-        return sites.filter(s => s.technicianId === user.uid);
-    }, [sites, user]);
 
-     if (loading || userLoading) {
-        return (
-            <div className="container mx-auto">
-                <header className="mb-6">
-                    <Skeleton className="h-8 w-48" />
-                    <Skeleton className="h-4 w-64 mt-2" />
-                </header>
-                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                    {Array.from({ length: 4 }).map((_, i) => (
-                        <Card key={i}>
-                            <Skeleton className="h-40 w-full" />
-                            <CardHeader>
-                                <Skeleton className="h-6 w-3/4" />
-                                <Skeleton className="h-4 w-1/2" />
-                            </CardHeader>
-                            <CardContent>
-                                <Skeleton className="h-8 w-full" />
-                            </CardContent>
-                        </Card>
-                    ))}
-                 </div>
-            </div>
-        )
+    if (!user) {
+         return <div className="container mx-auto"><p>در حال بارگذاری...</p></div>
     }
 
     return (

@@ -1,7 +1,7 @@
 
 'use client'
 
-import { getPMById, getSiteById, getUsers } from "@/lib/firestore";
+import { getPMById, getSiteById, getUserById, getTaskById } from "@/lib/data";
 import { notFound } from "next/navigation";
 import {
   Card,
@@ -19,10 +19,8 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Badge } from "@/components/ui/badge";
 import { Camera, MapPin, CheckCircle2, Circle, Send } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import type { TaskField, User, WeeklyPM, Site } from "@/lib/types";
+import type { TaskField } from "@/lib/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useEffect, useState } from "react";
-import { useFirestore } from "@/firebase";
 
 function TaskFieldRenderer({ field }: { field: TaskField }) {
     const id = `task-field-${field.id}`;
@@ -64,39 +62,15 @@ function TaskFieldRenderer({ field }: { field: TaskField }) {
 }
 
 export default function PMDetailPage({ params }: { params: { id:string } }) {
-  const firestore = useFirestore();
-  const [pm, setPm] = useState<WeeklyPM | null>(null);
-  const [site, setSite] = useState<Site | null>(null);
-  const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchData = async () => {
-        if (!firestore) return;
-        setLoading(true);
-        const pmData = await getPMById(firestore, params.id);
-        if (pmData) {
-            setPm(pmData);
-            const siteData = await getSiteById(firestore, pmData.siteId);
-            setSite(siteData);
-        }
-        const usersData = await getUsers(firestore);
-        setUsers(usersData);
-        setLoading(false);
-    }
-    fetchData();
-  }, [firestore, params.id]);
-
-
-  if (loading) {
-    return <div>در حال بارگذاری...</div>;
-  }
+  const pm = getPMById(params.id);
   
   if (!pm) {
     notFound();
   }
 
-  const technician = users.find(u => u.id === pm.assignedTechnicianId);
+  const site = getSiteById(pm.siteId);
+  const technician = pm.assignedTechnicianId ? getUserById(pm.assignedTechnicianId) : null;
+  
   const getStatusVariant = (status: string) => {
     if (status === 'Completed') return 'default';
     if (status === 'In Progress') return 'secondary';
@@ -126,39 +100,42 @@ export default function PMDetailPage({ params }: { params: { id:string } }) {
             </CardHeader>
             <CardContent>
             <Accordion type="multiple" defaultValue={pm.tasks?.map(t => t.taskId) || []} className="w-full">
-                {pm.tasks?.map((task, index) => (
-                <AccordionItem value={task.taskId} key={task.taskId}>
+                {pm.tasks?.map((taskResult, index) => {
+                const task = getTaskById(taskResult.taskId);
+                if (!task) return null;
+                return (
+                <AccordionItem value={task.id} key={task.id}>
                     <AccordionTrigger>
                     <div className="flex items-center gap-3">
-                        {/* {task.isCompleted ? <CheckCircle2 className="h-5 w-5 text-green-600" /> : <Circle className="h-5 w-5 text-muted-foreground" />}
+                        {taskResult.isCompleted ? <CheckCircle2 className="h-5 w-5 text-green-600" /> : <Circle className="h-5 w-5 text-muted-foreground" />}
                         <span className="text-right flex-1">{index + 1}. {task.title}</span>
-                        <Badge variant={task.type === 'dynamic' ? 'outline' : 'secondary'}>{task.type === 'dynamic' ? 'دینامیک' : 'ثابت'}</Badge> */}
+                        <Badge variant={task.type === 'dynamic' ? 'outline' : 'secondary'}>{task.type === 'dynamic' ? 'دینامیک' : 'ثابت'}</Badge>
                     </div>
                     </AccordionTrigger>
                     <AccordionContent>
                     <div className="space-y-4 px-4 py-2 border-r-2 border-primary/20">
-                        {/* <p className="text-muted-foreground">{task.description}</p> */}
+                        <p className="text-muted-foreground">{task.description}</p>
                         
                         <div className="grid gap-6 md:grid-cols-2">
                             <div className="space-y-4">
                             <Label>فیلدهای تسک</Label>
                             <div className="p-4 border rounded-md space-y-4 bg-muted/50">
-                                {/* {task.fields && task.fields.length > 0 ? (
+                                {task.fields && task.fields.length > 0 ? (
                                     task.fields.map(field => <TaskFieldRenderer key={field.id} field={field} />)
                                 ) : (
                                     <p className="text-sm text-muted-foreground">فیلد اضافه‌ای برای این تسک تعریف نشده است.</p>
-                                )} */}
+                                )}
                                 <div className="flex items-center space-x-2 space-x-reverse pt-2">
-                                    <Checkbox id={`task-completed-${task.taskId}`} checked={task.isCompleted} />
-                                    <Label htmlFor={`task-completed-${task.taskId}`} className="font-semibold">تسک انجام شد</Label>
+                                    <Checkbox id={`task-completed-${task.id}`} checked={taskResult.isCompleted} />
+                                    <Label htmlFor={`task-completed-${task.id}`} className="font-semibold">تسک انجام شد</Label>
                                 </div>
                             </div>
                             </div>
 
                             <div className="space-y-4">
                                 <div>
-                                    <Label htmlFor={`notes-${task.taskId}`}>توضیحات و نتایج</Label>
-                                    <Textarea id={`notes-${task.taskId}`} placeholder="مشاهدات و نتایج خود را اینجا وارد کنید..." defaultValue={task.notes} />
+                                    <Label htmlFor={`notes-${task.id}`}>توضیحات و نتایج</Label>
+                                    <Textarea id={`notes-${task.id}`} placeholder="مشاهدات و نتایج خود را اینجا وارد کنید..." defaultValue={taskResult.notes} />
                                 </div>
                                 <div className="flex flex-col sm:flex-row gap-2">
                                     <Button variant="outline" className="flex-1">
@@ -175,7 +152,7 @@ export default function PMDetailPage({ params }: { params: { id:string } }) {
                     </div>
                     </AccordionContent>
                 </AccordionItem>
-                ))}
+                )})}
             </Accordion>
             </CardContent>
             <CardFooter>
@@ -194,7 +171,7 @@ export default function PMDetailPage({ params }: { params: { id:string } }) {
             <CardContent className="space-y-4">
                 <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
                     {pm.comments?.map((comment, index) => {
-                        const user = users.find(u => u.id === comment.userId);
+                        const user = getUserById(comment.userId);
                         return (
                              <div key={index} className="flex items-start gap-3">
                                 <Avatar className="h-9 w-9">

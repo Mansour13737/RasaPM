@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Table,
   TableBody,
@@ -40,12 +40,10 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { PlusCircle, Edit, Trash2, RefreshCw } from 'lucide-react';
+import { PlusCircle, Edit, Trash2 } from 'lucide-react';
+import { users as initialUsers, addUser, updateUser, deleteUser } from '@/lib/data'; // Using mock data
 import type { User, UserRole } from '@/lib/types';
-import { getUsers, addUser, updateUser, deleteUser } from '@/lib/firestore';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useFirestore } from '@/firebase';
 
 const UserForm = ({
   user,
@@ -76,7 +74,7 @@ const UserForm = ({
         name,
         email,
         role,
-        avatarUrl: `https://i.pravatar.cc/150?u=${email}`
+        avatarUrl: user?.avatarUrl || `https://i.pravatar.cc/150?u=${email}`
     }
 
     if(user) {
@@ -105,7 +103,7 @@ const UserForm = ({
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="user@example.com"
-          disabled={!!user} // Disable email editing
+          disabled={!!user} // Disable email editing for mock data
         />
       </div>
       <div>
@@ -132,47 +130,30 @@ const UserForm = ({
 };
 
 export default function UsersPage() {
-  const firestore = useFirestore();
-  const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [users, setUsers] = useState<User[]>(initialUsers);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [deletingUser, setDeletingUser] = useState<User | null>(null);
   const { toast } = useToast();
 
-  const fetchUsers = useCallback(async () => {
-    if (!firestore) return;
-    setLoading(true);
-    const usersData = await getUsers(firestore);
-    setUsers(usersData);
-    setLoading(false);
-  }, [firestore]);
-
-  useEffect(() => {
-    fetchUsers();
-  }, [fetchUsers]);
-
   const handleSaveUser = (userData: Omit<User, 'id'> | User) => {
-    if (!firestore) return;
-    
     if ('id' in userData) {
-      updateUser(firestore, userData.id, userData);
+      updateUser(userData.id, userData);
       toast({ title: 'موفقیت', description: 'کاربر با موفقیت به‌روزرسانی شد.' });
     } else {
-      addUser(firestore, userData);
+      addUser(userData);
       toast({ title: 'موفقیت', description: 'کاربر جدید با موفقیت اضافه شد.' });
     }
-    fetchUsers();
+    setUsers([...initialUsers]); // Refresh the list from mock data
     setIsSheetOpen(false);
     setEditingUser(null);
   };
 
   const handleDeleteUser = () => {
-    if (!deletingUser || !firestore) return;
-    
-    deleteUser(firestore, deletingUser.id);
+    if (!deletingUser) return;
+    deleteUser(deletingUser.id);
     toast({ title: 'موفقیت', description: `کاربر ${deletingUser.name} با موفقیت حذف شد.` });
-    fetchUsers();
+    setUsers([...initialUsers]); // Refresh the list
     setDeletingUser(null);
   };
 
@@ -185,18 +166,6 @@ export default function UsersPage() {
     setEditingUser(user);
     setIsSheetOpen(true);
   };
-  
-  if (loading) {
-     return (
-       <div className="space-y-4">
-         <div className="flex justify-between items-center">
-            <Skeleton className="h-10 w-48" />
-            <Skeleton className="h-10 w-24" />
-         </div>
-         <Skeleton className="h-96 w-full" />
-       </div>
-     );
-  }
 
   return (
     <div className="container mx-auto">
@@ -208,15 +177,10 @@ export default function UsersPage() {
               کاربران سیستم را اضافه، ویرایش یا حذف کنید.
             </CardDescription>
           </div>
-           <div className="flex items-center gap-2">
-            <Button size="icon" variant="outline" onClick={fetchUsers}>
-              <RefreshCw className="h-4 w-4" />
-            </Button>
-            <Button onClick={openAddSheet}>
-              <PlusCircle className="ml-2 h-4 w-4" />
-              افزودن کاربر
-            </Button>
-          </div>
+          <Button onClick={openAddSheet}>
+            <PlusCircle className="ml-2 h-4 w-4" />
+            افزودن کاربر
+          </Button>
         </CardHeader>
         <CardContent>
           <Table>

@@ -15,17 +15,9 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Logo } from '@/components/icons';
 import { useEffect, useState } from 'react';
-import { useAuth, useUser } from '@/firebase';
-import { signOut } from 'firebase/auth';
+import type { User } from '@/lib/types';
 
-const Navbar = () => {
-  const { user } = useUser();
-  const auth = useAuth();
-  
-  const handleSignOut = () => {
-    signOut(auth);
-  };
-
+const Navbar = ({ user, onSignOut }: { user: User | null, onSignOut: () => void }) => {
   return (
     <nav className="bg-card border-b sticky top-0 z-50">
       <div className="container mx-auto px-4">
@@ -51,14 +43,14 @@ const Navbar = () => {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="rounded-full">
                   <Avatar>
-                    <AvatarImage src={user?.photoURL || ''} alt={user?.displayName || ''} />
-                    <AvatarFallback>{user?.displayName?.charAt(0) || user?.email?.charAt(0)}</AvatarFallback>
+                    <AvatarImage src={user?.avatarUrl || ''} alt={user?.name || ''} />
+                    <AvatarFallback>{user?.name?.charAt(0)}</AvatarFallback>
                   </Avatar>
                   <span className="sr-only">Toggle user menu</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuLabel>{user?.displayName || user?.email}</DropdownMenuLabel>
+                <DropdownMenuLabel>{user?.name}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem>
                     <UserIcon className="ml-2 h-4 w-4"/>
@@ -69,11 +61,9 @@ const Navbar = () => {
                     تنظیمات
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleSignOut} asChild>
-                   <Link href="/">
-                    <LogOut className="ml-2 h-4 w-4"/>
-                    خروج
-                  </Link>
+                <DropdownMenuItem onClick={onSignOut}>
+                  <LogOut className="ml-2 h-4 w-4"/>
+                  خروج
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -100,30 +90,31 @@ export default function TechnicianDashboardLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const { user, loading } = useUser();
-  const [isAuthorized, setIsAuthorized] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (loading) {
-      return; 
-    }
-
-    if (!user) {
-      router.replace('/');
-      return;
-    }
-
-    user.getIdTokenResult().then((idTokenResult) => {
-      const userRole = idTokenResult.claims.role;
-      if (userRole === 'Technician') {
-        setIsAuthorized(true);
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      const userData: User = JSON.parse(storedUser);
+      if (userData.role === 'Technician') {
+        setUser(userData);
       } else {
-        router.replace('/management-dashboard'); 
+        router.replace('/management-dashboard');
       }
-    });
-  }, [user, loading, router]);
+    } else {
+      router.replace('/');
+    }
+    setLoading(false);
+  }, [router]);
 
-  if (loading || !isAuthorized) {
+  const handleSignOut = () => {
+    localStorage.removeItem('user');
+    setUser(null);
+    router.push('/');
+  };
+
+  if (loading || !user) {
     return (
         <div className="flex items-center justify-center min-h-screen">
           <p>در حال بارگذاری و بررسی دسترسی...</p>
@@ -133,7 +124,7 @@ export default function TechnicianDashboardLayout({
 
   return (
     <div className="flex flex-col min-h-screen bg-muted/40">
-        <Navbar />
+        <Navbar user={user} onSignOut={handleSignOut} />
         <main className="flex-grow container mx-auto p-4 sm:p-6">
             {children}
         </main>
