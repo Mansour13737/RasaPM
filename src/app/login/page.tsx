@@ -11,7 +11,7 @@ import { users } from '@/lib/data'; // Using mock data
 import type { User } from '@/lib/types';
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -22,7 +22,7 @@ export default function LoginPage() {
     setError(null);
     
     // Mock login logic
-    const user = users.find((u) => u.email === email);
+    const user = users.find((u) => u.username === username);
 
     if (user && password === 'password') { // Using a simple mock password
       // In a real app, never store sensitive data in localStorage
@@ -50,20 +50,20 @@ export default function LoginPage() {
         <CardHeader>
           <CardTitle className="text-2xl">ورود</CardTitle>
           <CardDescription>
-            برای ورود به حساب کاربری خود، ایمیل و رمز عبور خود را وارد کنید. (رمز عبور: password)
+            برای ورود به حساب کاربری خود، نام کاربری و رمز عبور خود را وارد کنید. (رمز عبور: password)
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">ایمیل</Label>
+              <Label htmlFor="username">نام کاربری</Label>
               <Input
-                id="email"
-                type="email"
-                placeholder="user@example.com"
+                id="username"
+                type="text"
+                placeholder="نام کاربری خود را وارد کنید"
                 required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
               />
             </div>
             <div className="space-y-2">

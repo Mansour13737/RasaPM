@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -51,17 +50,17 @@ const UserForm = ({
   onClose,
 }: {
   user?: User | null;
-  onSave: (user: Omit<User, 'id'> | User) => void;
+  onSave: (user: Omit<User, 'id' | 'email'> | (User & {email: string})) => void;
   onClose: () => void;
 }) => {
   const [name, setName] = useState(user?.name || '');
-  const [email, setEmail] = useState(user?.email || '');
+  const [username, setUsername] = useState(user?.username || '');
   const [role, setRole] = useState<UserRole>(user?.role || 'Technician');
   const { toast } = useToast();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !email || !role) {
+    if (!name || !username || !role) {
       toast({
         variant: 'destructive',
         title: 'خطا',
@@ -70,8 +69,11 @@ const UserForm = ({
       return;
     }
 
+    const email = user?.email || `${username.toLowerCase()}@example.com`;
+
     const userData = {
         name,
+        username,
         email,
         role,
         avatarUrl: user?.avatarUrl || `https://i.pravatar.cc/150?u=${email}`
@@ -96,14 +98,13 @@ const UserForm = ({
         />
       </div>
       <div>
-        <Label htmlFor="email">ایمیل (نام کاربری)</Label>
+        <Label htmlFor="username">نام کاربری</Label>
         <Input
-          id="email"
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="user@example.com"
-          disabled={!!user} // Disable email editing for mock data
+          id="username"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          placeholder="username"
+          disabled={!!user} // Disable username editing for mock data
         />
       </div>
       <div>
@@ -136,12 +137,14 @@ export default function UsersPage() {
   const [deletingUser, setDeletingUser] = useState<User | null>(null);
   const { toast } = useToast();
 
-  const handleSaveUser = (userData: Omit<User, 'id'> | User) => {
+  const handleSaveUser = (userData: Omit<User, 'id' | 'email'> | (User & {email: string})) => {
     if ('id' in userData) {
       updateUser(userData.id, userData);
       toast({ title: 'موفقیت', description: 'کاربر با موفقیت به‌روزرسانی شد.' });
     } else {
-      addUser(userData);
+      // For new users, we need to generate an email if it's not part of the object
+      const newUserPayload = { ...userData, email: `${userData.username}@example.com` };
+      addUser(newUserPayload);
       toast({ title: 'موفقیت', description: 'کاربر جدید با موفقیت اضافه شد.' });
     }
     setUsers([...initialUsers]); // Refresh the list from mock data
@@ -187,7 +190,7 @@ export default function UsersPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>نام</TableHead>
-                <TableHead>ایمیل</TableHead>
+                <TableHead>نام کاربری</TableHead>
                 <TableHead>نقش</TableHead>
                 <TableHead>عملیات</TableHead>
               </TableRow>
@@ -196,7 +199,7 @@ export default function UsersPage() {
               {users.map((user) => (
                 <TableRow key={user.id}>
                   <TableCell>{user.name}</TableCell>
-                  <TableCell>{user.email}</TableCell>
+                  <TableCell>{user.username}</TableCell>
                   <TableCell>{user.role}</TableCell>
                   <TableCell className="space-x-2 space-x-reverse">
                     <Button

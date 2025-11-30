@@ -1,4 +1,3 @@
-
 // This is a mock database. In a real application, you would use a real database.
 
 import type { Site, User, WeeklyPM, Task, ChangeRequest, UserRole } from './types';
@@ -7,9 +6,10 @@ import { PlaceHolderImages } from './placeholder-images';
 const getImage = (id: string) => PlaceHolderImages.find(img => img.id === id)?.imageUrl || 'https://placehold.co/600x400';
 const getHint = (id: string) => PlaceHolderImages.find(img => img.id === id)?.imageHint || 'image';
 
-export const users: User[] = [
+export let users: User[] = [
   {
     id: 'user-1',
+    username: 'ali.ahmadi',
     name: 'علی احمدی',
     email: 'ali.ahmadi@example.com',
     role: 'Admin',
@@ -17,6 +17,7 @@ export const users: User[] = [
   },
   {
     id: 'user-2',
+    username: 'sara.rezaei',
     name: 'سارا رضایی',
     email: 'sara.rezaei@example.com',
     role: 'PM',
@@ -24,6 +25,7 @@ export const users: User[] = [
   },
   {
     id: 'user-3',
+    username: 'mohammad.karimi',
     name: 'محمد کریمی',
     email: 'mohammad.karimi@example.com',
     role: 'Technician',
@@ -31,6 +33,7 @@ export const users: User[] = [
   },
   {
     id: 'user-4',
+    username: 'fateme.hosseini',
     name: 'فاطمه حسینی',
     email: 'fateme.hosseini@example.com',
     role: 'Technician',
@@ -98,7 +101,7 @@ export const tasks: Task[] = [
     }
 ];
 
-export const weeklyPMs: WeeklyPM[] = [
+export let weeklyPMs: WeeklyPM[] = [
   {
     id: 'pm-1',
     weekIdentifier: '2024-W28',
@@ -149,7 +152,7 @@ export const weeklyPMs: WeeklyPM[] = [
 ];
 
 
-export const changeRequests: ChangeRequest[] = [
+export let changeRequests: ChangeRequest[] = [
     {
         id: 'cr-1',
         siteId: 'site-1',
