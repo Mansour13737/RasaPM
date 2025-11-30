@@ -1,15 +1,14 @@
-"use client";
+'use client';
 
-import Link from "next/link";
-import React, { useEffect, useMemo, useState } from "react";
-import { sites, users, weeklyPMs } from "@/lib/data";
+import Link from 'next/link';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from '@/components/ui/card';
 import {
   Table,
   TableBody,
@@ -17,12 +16,15 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import type { PMStatus, WeeklyPM, User } from "@/lib/types";
-import { format, endOfWeek } from "date-fns";
+} from '@/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import type { PMStatus, WeeklyPM, Site } from '@/lib/types';
+import { format, endOfWeek } from 'date-fns';
+import { useUser, useFirestore } from '@/firebase';
+import { getWeeklyPMs, getSites } from '@/lib/firestore';
+import { Skeleton } from '@/components/ui/skeleton';
 
 function getWeekDate(weekIdentifier: string): Date {
     const [year, week] = weekIdentifier.split('-W').map(Number);
@@ -34,36 +36,46 @@ function getWeekDate(weekIdentifier: string): Date {
 
 function getStatusVariant(status: PMStatus) {
   switch (status) {
-    case "Completed":
-      return "default";
-    case "In Progress":
-      return "secondary";
-    case "Cancelled":
-      return "destructive";
-    case "Pending":
+    case 'Completed':
+      return 'default';
+    case 'In Progress':
+      return 'secondary';
+    case 'Cancelled':
+      return 'destructive';
+    case 'Pending':
     default:
-      return "outline";
+      return 'outline';
   }
 }
 
 export default function TechnicianDashboardPage() {
-  const [technician, setTechnician] = useState<User | null>(null);
+  const { user, loading: userLoading } = useUser();
+  const firestore = useFirestore();
+
+  const [allPMs, setAllPMs] = useState<WeeklyPM[]>([]);
+  const [sites, setSites] = useState<Site[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const userEmail = localStorage.getItem('userEmail');
-    if (userEmail) {
-        const currentUser = users.find(u => u.email === userEmail);
-        if (currentUser) {
-            setTechnician(currentUser);
-        }
+    const fetchData = async () => {
+        if (!firestore) return;
+        setLoading(true);
+        const [pmsData, sitesData] = await Promise.all([
+            getWeeklyPMs(firestore),
+            getSites(firestore),
+        ]);
+        setAllPMs(pmsData);
+        setSites(sitesData);
+        setLoading(false);
     }
-  }, []);
+    fetchData();
+  }, [firestore]);
 
 
   const technicianPMs = useMemo(() => {
-    if (!technician) return [];
-    return weeklyPMs.filter(pm => pm.assignedTechnicianId === technician.id);
-  }, [technician]);
+    if (!user) return [];
+    return allPMs.filter(pm => pm.assignedTechnicianId === user.uid);
+  }, [user, allPMs]);
 
   const pmByStatus = useMemo(() => {
       return technicianPMs.reduce((acc, pm) => {
@@ -123,15 +135,22 @@ export default function TechnicianDashboardPage() {
     </Table>
   );
   
-  if (!technician) {
+  if (userLoading || loading) {
     return (
-        <div className="container mx-auto">
+        <div className="container mx-auto space-y-6">
              <header className="mb-6">
-                <h1 className="text-3xl font-bold font-headline">داشبورد تکنسین</h1>
-                <p className="text-muted-foreground">
-                    در حال بارگذاری اطلاعات کاربر...
-                </p>
+                <Skeleton className="h-8 w-48" />
+                <Skeleton className="h-4 w-64 mt-2" />
             </header>
+            <Card>
+                <CardHeader>
+                    <Skeleton className="h-8 w-1/3" />
+                    <Skeleton className="h-4 w-1/2" />
+                </CardHeader>
+                <CardContent>
+                    <Skeleton className="h-64 w-full" />
+                </CardContent>
+            </Card>
         </div>
     )
   }
@@ -141,7 +160,7 @@ export default function TechnicianDashboardPage() {
       <header className="mb-6">
         <h1 className="text-3xl font-bold font-headline">داشبورد تکنسین</h1>
         <p className="text-muted-foreground">
-          سلام {technician?.name}، برنامه‌های اختصاص یافته به شما در زیر آمده است.
+          سلام {user?.displayName || user?.email}، برنامه‌های اختصاص یافته به شما در زیر آمده است.
         </p>
       </header>
 
@@ -154,7 +173,7 @@ export default function TechnicianDashboardPage() {
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="in-progress" className="w-full">
-              <TabsList className="grid w-full grid-cols-4">
+              <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
                 <TabsTrigger value="in-progress">در حال انجام ({pmByStatus['In Progress']?.length || 0})</TabsTrigger>
                 <TabsTrigger value="pending">معلق ({pmByStatus['Pending']?.length || 0})</TabsTrigger>
                 <TabsTrigger value="completed">انجام شده ({pmByStatus['Completed']?.length || 0})</TabsTrigger>

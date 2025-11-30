@@ -1,9 +1,8 @@
-"use client";
+'use client';
 
-import Link from "next/link";
-import Image from "next/image";
-import { useRouter } from "next/navigation";
-import { Building2, Home, LogOut, Settings, User as UserIcon } from "lucide-react";
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { Building2, Home, LogOut, Settings, User as UserIcon } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,21 +10,22 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Logo } from "@/components/icons";
-import { useEffect, useState } from "react";
-
-const getRole = () => {
-  if (typeof window !== 'undefined') {
-    return localStorage.getItem("userRole");
-  }
-  return null;
-}
-
+} from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Logo } from '@/components/icons';
+import { useEffect, useState } from 'react';
+import { useAuth, useUser } from '@/firebase';
+import { signOut } from 'firebase/auth';
 
 const Navbar = () => {
+  const { user } = useUser();
+  const auth = useAuth();
+  
+  const handleSignOut = () => {
+    signOut(auth);
+  };
+
   return (
     <nav className="bg-card border-b sticky top-0 z-50">
       <div className="container mx-auto px-4">
@@ -51,14 +51,14 @@ const Navbar = () => {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="rounded-full">
                   <Avatar>
-                    <AvatarImage src={"https://i.pravatar.cc/150?u=tech"} alt="User Avatar" />
-                    <AvatarFallback>{'تک'}</AvatarFallback>
+                    <AvatarImage src={user?.photoURL || ''} alt={user?.displayName || ''} />
+                    <AvatarFallback>{user?.displayName?.charAt(0) || user?.email?.charAt(0)}</AvatarFallback>
                   </Avatar>
                   <span className="sr-only">Toggle user menu</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuLabel>حساب کاربری</DropdownMenuLabel>
+                <DropdownMenuLabel>{user?.displayName || user?.email}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem>
                     <UserIcon className="ml-2 h-4 w-4"/>
@@ -69,13 +69,8 @@ const Navbar = () => {
                     تنظیمات
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => {
-                  if (typeof window !== 'undefined') {
-                    localStorage.removeItem('userRole');
-                    localStorage.removeItem('userEmail');
-                  }
-                }} asChild>
-                  <Link href="/">
+                <DropdownMenuItem onClick={handleSignOut} asChild>
+                   <Link href="/">
                     <LogOut className="ml-2 h-4 w-4"/>
                     خروج
                   </Link>
@@ -88,24 +83,6 @@ const Navbar = () => {
     </nav>
   );
 };
-
-const PageHeader = () => {
-    return (
-        <header className="relative bg-gray-800 h-48 md:h-64 flex items-center justify-center">
-            <Image 
-                src="https://picsum.photos/seed/telecom-tech/1920/400"
-                alt="تکنسین مخابرات"
-                fill
-                className="object-cover w-full h-full opacity-30"
-                data-ai-hint="telecom technician"
-            />
-            <div className="relative z-10 text-center text-white p-4">
-                <h1 className="text-4xl md:text-5xl font-bold font-headline">داشبورد تکنسین</h1>
-                <p className="mt-2 text-lg md:text-xl text-gray-200">برنامه‌ها و وظایف خود را مدیریت کنید</p>
-            </div>
-        </header>
-    )
-}
 
 const Footer = () => {
     return (
@@ -123,25 +100,33 @@ export default function TechnicianDashboardLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const [isClient, setIsClient] = useState(false);
+  const { user, loading } = useUser();
+  const [isAuthorized, setIsAuthorized] = useState(false);
 
   useEffect(() => {
-    setIsClient(true);
-    const userRole = getRole();
-    if (userRole !== 'Technician') {
-      router.push('/');
+    if (loading) {
+      return; 
     }
-  }, [router]);
-  
-  if (!isClient) {
-    return null; // Or a loading spinner
-  }
-  
-  const userRole = getRole();
-  if (userRole !== 'Technician') {
+
+    if (!user) {
+      router.replace('/');
+      return;
+    }
+
+    user.getIdTokenResult().then((idTokenResult) => {
+      const userRole = idTokenResult.claims.role;
+      if (userRole === 'Technician') {
+        setIsAuthorized(true);
+      } else {
+        router.replace('/management-dashboard'); 
+      }
+    });
+  }, [user, loading, router]);
+
+  if (loading || !isAuthorized) {
     return (
         <div className="flex items-center justify-center min-h-screen">
-          <p>در حال هدایت به صفحه ورود...</p>
+          <p>در حال بارگذاری و بررسی دسترسی...</p>
         </div>
     );
   }
@@ -149,7 +134,6 @@ export default function TechnicianDashboardLayout({
   return (
     <div className="flex flex-col min-h-screen bg-muted/40">
         <Navbar />
-        <PageHeader />
         <main className="flex-grow container mx-auto p-4 sm:p-6">
             {children}
         </main>

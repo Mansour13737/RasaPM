@@ -1,6 +1,7 @@
+'use client'
 
-import { getPMById, getSiteById, users } from "@/lib/data";
-import { notFound } from "next/navigation";
+import { getPMById, getSiteById, getUsers, updateUser, addCommentToPM } from "@/lib/firestore";
+import { notFound, useRouter } from "next/navigation";
 import {
   Card,
   CardContent,
@@ -15,10 +16,15 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
-import { Camera, MapPin, CheckCircle2, Circle, Send } from "lucide-react";
+import { Camera, MapPin, CheckCircle2, Circle, Send, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import type { TaskField } from "@/lib/types";
+import type { TaskField, User, WeeklyPM, Site, TaskResult } from "@/lib/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useEffect, useState } from "react";
+import { useFirestore, useUser } from "@/firebase";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/hooks/use-toast";
+import Image from "next/image";
 
 function TaskFieldRenderer({ field }: { field: TaskField }) {
     const id = `task-field-${field.id}`;
@@ -60,12 +66,94 @@ function TaskFieldRenderer({ field }: { field: TaskField }) {
 }
 
 export default function PMDetailPage({ params }: { params: { id:string } }) {
-  const pm = getPMById(params.id);
+  const firestore = useFirestore();
+  const { user, loading: userLoading } = useUser();
+  const router = useRouter();
+  const { toast } = useToast();
+
+  const [pm, setPm] = useState<WeeklyPM | null>(null);
+  const [site, setSite] = useState<Site | null>(null);
+  const [users, setUsers] = useState<User[]>([]);
+  const [taskResults, setTaskResults] = useState<TaskResult[]>([]);
+  const [newComment, setNewComment] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+        if (!firestore) return;
+        setLoading(true);
+        const pmData = await getPMById(firestore, params.id);
+        if (pmData) {
+            setPm(pmData);
+            setTaskResults(pmData.tasks || []);
+            const siteData = await getSiteById(firestore, pmData.siteId);
+            setSite(siteData);
+        }
+        const usersData = await getUsers(firestore);
+        setUsers(usersData);
+        setLoading(false);
+    }
+    fetchData();
+  }, [firestore, params.id]);
+
+  const handleTaskCompletionChange = (taskId: string, isCompleted: boolean) => {
+    setTaskResults(prevResults => {
+        const existingResult = prevResults.find(r => r.taskId === taskId);
+        if (existingResult) {
+            return prevResults.map(r => r.taskId === taskId ? { ...r, isCompleted } : r);
+        } else {
+            // This part is tricky if tasks are not pre-populated.
+            // For now, let's assume pm.tasks gives us the structure.
+            return [...prevResults, { taskId, isCompleted, notes: '', photos: [], location: null, checklist: {}, customFields: {} }];
+        }
+    });
+  };
+
+  const handleNotesChange = (taskId: string, notes: string) => {
+     setTaskResults(prevResults => {
+        const existingResult = prevResults.find(r => r.taskId === taskId);
+        if (existingResult) {
+            return prevResults.map(r => r.taskId === taskId ? { ...r, notes } : r);
+        }
+        return prevResults;
+    });
+  }
+
+  const handleAddComment = () => {
+    if (!firestore || !user || !newComment.trim()) return;
+    addCommentToPM(firestore, params.id, {
+        userId: user.uid,
+        text: newComment,
+        timestamp: new Date().toISOString()
+    });
+    // This is an optimistic update. For a better UX, we'd wait for success.
+    setPm(prev => prev ? ({ ...prev, comments: [...(prev.comments || []), { userId: user.uid, text: newComment, timestamp: new Date().toISOString() }]}) : null);
+    setNewComment("");
+  }
+  
+  const handleCompletePM = () => {
+    if (!firestore) return;
+    const updatedPMData = {
+        tasks: taskResults,
+        status: "Completed" as const
+    };
+    updateUser(firestore, params.id, updatedPMData);
+    toast({
+        title: "PM تکمیل شد",
+        description: "وضعیت و نتایج با موفقیت ثبت شدند.",
+    });
+    router.push('/tech-dashboard');
+  }
+
+
+  if (loading || userLoading) {
+    return <div className="container mx-auto"><p>در حال بارگذاری...</p></div>;
+  }
+  
   if (!pm) {
     notFound();
   }
 
-  const site = getSiteById(pm.siteId);
   const technician = users.find(u => u.id === pm.assignedTechnicianId);
   const getStatusVariant = (status: string) => {
     if (status === 'Completed') return 'default';
@@ -95,61 +183,57 @@ export default function PMDetailPage({ params }: { params: { id:string } }) {
             </div>
             </CardHeader>
             <CardContent>
-            <Accordion type="multiple" defaultValue={pm.tasks.map(t => t.id || t.taskId)} className="w-full">
-                {pm.tasks.map((task, index) => (
-                <AccordionItem value={task.id || task.taskId} key={task.id || task.taskId}>
-                    <AccordionTrigger>
-                    <div className="flex items-center gap-3">
-                        {task.isCompleted ? <CheckCircle2 className="h-5 w-5 text-green-600" /> : <Circle className="h-5 w-5 text-muted-foreground" />}
-                        <span className="text-right flex-1">{index + 1}. {task.title}</span>
-                        <Badge variant={task.type === 'dynamic' ? 'outline' : 'secondary'}>{task.type === 'dynamic' ? 'دینامیک' : 'ثابت'}</Badge>
-                    </div>
-                    </AccordionTrigger>
-                    <AccordionContent>
-                    <div className="space-y-4 px-4 py-2 border-r-2 border-primary/20">
-                        <p className="text-muted-foreground">{task.description}</p>
-                        
-                        <div className="grid gap-6 md:grid-cols-2">
-                            <div className="space-y-4">
-                            <Label>فیلدهای تسک</Label>
-                            <div className="p-4 border rounded-md space-y-4 bg-muted/50">
-                                {task.fields && task.fields.length > 0 ? (
-                                    task.fields.map(field => <TaskFieldRenderer key={field.id} field={field} />)
-                                ) : (
-                                    <p className="text-sm text-muted-foreground">فیلد اضافه‌ای برای این تسک تعریف نشده است.</p>
-                                )}
-                                <div className="flex items-center space-x-2 space-x-reverse pt-2">
-                                    <Checkbox id={`task-completed-${task.id}`} checked={task.isCompleted} />
-                                    <Label htmlFor={`task-completed-${task.id}`} className="font-semibold">تسک انجام شد</Label>
-                                </div>
+            <Accordion type="multiple" defaultValue={pm.tasks?.map(t => t.taskId) || []} className="w-full">
+                {pm.tasks.map((taskTemplate, index) => {
+                    const taskResult = taskResults.find(r => r.taskId === taskTemplate.taskId) || { isCompleted: false, notes: ''};
+                    return (
+                        <AccordionItem value={taskTemplate.taskId} key={taskTemplate.taskId}>
+                            <AccordionTrigger>
+                            <div className="flex items-center gap-3 w-full">
+                                {taskResult.isCompleted ? <CheckCircle2 className="h-5 w-5 text-green-600" /> : <Circle className="h-5 w-5 text-muted-foreground" />}
+                                <span className="text-right flex-1">{index + 1}. {(taskTemplate as any).title}</span>
                             </div>
-                            </div>
+                            </AccordionTrigger>
+                            <AccordionContent>
+                            <div className="space-y-4 px-4 py-2 border-r-2 border-primary/20">
+                                <p className="text-muted-foreground">{(taskTemplate as any).description}</p>
+                                
+                                <div className="grid gap-6 md:grid-cols-2">
+                                    <div className="space-y-4">
+                                    <Label>انجام تسک</Label>
+                                    <div className="p-4 border rounded-md space-y-4 bg-muted/50">
+                                        <div className="flex items-center space-x-2 space-x-reverse pt-2">
+                                            <Checkbox 
+                                                id={`task-completed-${taskTemplate.taskId}`} 
+                                                checked={taskResult.isCompleted}
+                                                onCheckedChange={(checked) => handleTaskCompletionChange(taskTemplate.taskId, !!checked)}
+                                            />
+                                            <Label htmlFor={`task-completed-${taskTemplate.taskId}`} className="font-semibold">تسک انجام شد</Label>
+                                        </div>
+                                    </div>
+                                    </div>
 
-                            <div className="space-y-4">
-                                <div>
-                                    <Label htmlFor={`notes-${task.id}`}>توضیحات و نتایج</Label>
-                                    <Textarea id={`notes-${task.id}`} placeholder="مشاهدات و نتایج خود را اینجا وارد کنید..." defaultValue={task.notes} />
-                                </div>
-                                <div className="flex flex-col sm:flex-row gap-2">
-                                    <Button variant="outline" className="flex-1">
-                                        <Camera className="ml-2 h-4 w-4" />
-                                        آپلود عکس
-                                    </Button>
-                                    <Button variant="outline" className="flex-1">
-                                        <MapPin className="ml-2 h-4 w-4" />
-                                        ثبت موقعیت
-                                    </Button>
+                                    <div className="space-y-4">
+                                        <div>
+                                            <Label htmlFor={`notes-${taskTemplate.taskId}`}>توضیحات و نتایج</Label>
+                                            <Textarea 
+                                                id={`notes-${taskTemplate.taskId}`} 
+                                                placeholder="مشاهدات و نتایج خود را اینجا وارد کنید..." 
+                                                value={taskResult.notes}
+                                                onChange={(e) => handleNotesChange(taskTemplate.taskId, e.target.value)}
+                                            />
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    </div>
-                    </AccordionContent>
-                </AccordionItem>
-                ))}
+                            </AccordionContent>
+                        </AccordionItem>
+                    )
+                })}
             </Accordion>
             </CardContent>
             <CardFooter>
-                <Button size="lg" className="w-full md:w-auto">
+                <Button size="lg" className="w-full md:w-auto" onClick={handleCompletePM}>
                     ثبت و اتمام PM
                 </Button>
             </CardFooter>
@@ -164,16 +248,16 @@ export default function PMDetailPage({ params }: { params: { id:string } }) {
             <CardContent className="space-y-4">
                 <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
                     {pm.comments?.map((comment, index) => {
-                        const user = users.find(u => u.id === comment.userId);
+                        const commentUser = users.find(u => u.id === comment.userId);
                         return (
                              <div key={index} className="flex items-start gap-3">
                                 <Avatar className="h-9 w-9">
-                                    <AvatarImage src={user?.avatarUrl} alt={user?.name} />
-                                    <AvatarFallback>{user?.name.charAt(0)}</AvatarFallback>
+                                    <AvatarImage src={commentUser?.avatarUrl} alt={commentUser?.name} />
+                                    <AvatarFallback>{commentUser?.name.charAt(0)}</AvatarFallback>
                                 </Avatar>
                                 <div className="flex-1">
                                     <div className="flex items-center justify-between">
-                                        <p className="font-semibold">{user?.name}</p>
+                                        <p className="font-semibold">{commentUser?.name}</p>
                                         <p className="text-xs text-muted-foreground">{new Date(comment.timestamp).toLocaleTimeString('fa-IR')}</p>
                                     </div>
                                     <p className="text-sm bg-muted p-3 rounded-lg mt-1">{comment.text}</p>
@@ -183,8 +267,13 @@ export default function PMDetailPage({ params }: { params: { id:string } }) {
                     }) || <p className="text-sm text-muted-foreground text-center">کامنتی ثبت نشده است.</p>}
                 </div>
                  <div className="relative">
-                    <Textarea placeholder="پیام خود را بنویسید..." className="pr-12" />
-                    <Button size="icon" className="absolute left-2 top-1/2 -translate-y-1/2 h-8 w-8">
+                    <Textarea 
+                        placeholder="پیام خود را بنویسید..." 
+                        className="pr-12"
+                        value={newComment}
+                        onChange={(e) => setNewComment(e.target.value)}
+                    />
+                    <Button size="icon" className="absolute left-2 top-1/2 -translate-y-1/2 h-8 w-8" onClick={handleAddComment}>
                         <Send className="h-4 w-4" />
                     </Button>
                 </div>

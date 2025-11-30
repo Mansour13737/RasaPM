@@ -1,32 +1,35 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Logo } from '@/components/icons';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import { useUser } from '@/firebase';
 
 export default function HomePage() {
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
+  const { user, loading } = useUser();
 
   useEffect(() => {
-    const userRole = localStorage.getItem('userRole');
-    if (userRole) {
-      if (userRole === 'Admin' || userRole === 'PM') {
-        router.replace('/management-dashboard');
-      } else if (userRole === 'Technician') {
-        router.replace('/tech-dashboard');
-      } else {
-        setLoading(false);
-      }
-    } else {
-      setLoading(false);
+    if (!loading && user) {
+      user.getIdTokenResult().then(idTokenResult => {
+        const role = idTokenResult.claims.role;
+        if (role === 'Admin' || role === 'PM') {
+          router.replace('/management-dashboard');
+        } else if (role === 'Technician') {
+          router.replace('/tech-dashboard');
+        }
+      });
     }
-  }, [router]);
+  }, [user, loading, router]);
 
   if (loading) {
     return <div className="flex items-center justify-center min-h-screen"><p>در حال بارگذاری...</p></div>;
+  }
+  
+  if(user) {
+    return <div className="flex items-center justify-center min-h-screen"><p>در حال هدایت به داشبورد...</p></div>;
   }
 
   return (

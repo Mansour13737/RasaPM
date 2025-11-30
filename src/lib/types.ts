@@ -14,7 +14,7 @@ export interface Site {
   location: string;
   imageUrl: string;
   imageHint: string;
-  technicianId: string;
+  technicianId: string; // This should be the Firebase UID of the user
 }
 
 export type TaskType = 'static' | 'dynamic';
@@ -40,7 +40,7 @@ export interface WeeklyPM {
   id: string;
   weekIdentifier: string; // e.g., "2024-W28"
   siteId: string;
-  assignedTechnicianId: string | null;
+  assignedTechnicianId: string | null; // Firebase UID
   status: PMStatus;
   tasks: TaskResult[];
   crNumber?: string;
@@ -70,7 +70,7 @@ export interface ChangeRequest {
   endDate: string;
   title: CRType;
   description: string;
-  submittedBy: string; // userId
+  submittedBy: string; // userId (Firebase UID)
   createdAt: string;
   status: CRStatus;
   priority: CRPriority;
