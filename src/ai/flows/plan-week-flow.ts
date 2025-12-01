@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview A flow to generate a weekly PM plan.
@@ -47,21 +48,21 @@ const prompt = ai.definePrompt({
   prompt: `You are an expert logistics and operations planner for a telecommunications company. Your task is to create an optimal weekly Preventive Maintenance (PM) plan.
 
 **Constraints & Goals:**
-1.  **Prioritize Overdue:** You MUST prioritize scheduling PMs for the sites listed in \`overdueSites\`. For these, the reasoning should be 'PM معوقه'.
-2.  **Target Count:** Aim to schedule exactly \`{{targetSiteCount}}\` total PMs for the week.
-3.  **Avoid Duplicates:** Do not schedule a PM for a site that is already in \`existingPMsForWeek\`.
-4.  **Fill Remaining Slots:** After scheduling all possible overdue sites, fill the remaining slots with other sites from \`allSites\` to reach the \`targetSiteCount\`. For these, the reasoning should be 'تکمیل ظرفیت هفتگی'.
-5.  **Fair Distribution:** Assign the PM to the technician responsible for that site as specified in the input data.
+1.  **Prioritize Overdue:** You MUST schedule PMs for all sites listed in \`overdueSites\` that are NOT already in \`existingPMsForWeek\`. For these, the reasoning must be 'PM معوقه'.
+2.  **Avoid Duplicates:** Do not schedule a PM for any site that is already in \`existingPMsForWeek\`.
+3.  **Fill Remaining Slots:** After scheduling all possible overdue sites, if the count is less than \`targetSiteCount\`, fill the remaining slots with other sites from \`allSites\` to reach the \`targetSiteCount\`. For these, the reasoning must be 'تکمیل ظرفیت هفتگی'. The sites you choose must NOT be in \`overdueSites\` and NOT in \`existingPMsForWeek\`.
+4.  **Assign Technician:** For each scheduled PM, you MUST assign the correct technician. The technician's ID is provided in the site object (\`technicianId\` property) within both \`overdueSites\` and \`allSites\`.
+5.  **Target Count:** Aim to schedule exactly \`{{targetSiteCount}}\` total PMs for the week if possible.
 
 **Your Output:**
 -   **suggestedPMs**: A list of PM objects. Each object must contain \`siteId\`, the pre-assigned \`technicianId\`, and a brief \`reasoning\` in Persian.
 
 **Input Data:**
--   Overdue Sites (High Priority): {{overdueSites}}
--   All Sites: {{allSites}}
--   All Technicians: {{technicians}}
--   Existing PMs This Week (Exclude these): {{existingPMsForWeek}}
 -   Target PM Count: {{targetSiteCount}}
+-   Overdue Sites (High Priority): {{jsonStringify overdueSites}}
+-   All Sites (for filling): {{jsonStringify allSites}}
+-   Technicians (for reference): {{jsonStringify technicians}}
+-   Existing PMs This Week (Exclude these): {{jsonStringify existingPMsForWeek}}
 `,
 });
 
