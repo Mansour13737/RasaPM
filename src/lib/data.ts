@@ -228,18 +228,34 @@ export const initialTasks: Task[] = [
 
 const generateAllYearPMs = (): WeeklyPM[] => {
     const allPMs: WeeklyPM[] = [];
-    let sitesForPlanning = [...initialSites];
     let pmIdCounter = 1;
     const currentYear = getYear(new Date());
     const currentWeek = getISOWeek(new Date());
 
-    // Create a pool of sites to be planned for the year (each site appears twice)
-    let planningPool = [...sitesForPlanning, ...sitesForPlanning];
-    planningPool.sort(() => Math.random() - 0.5); // Shuffle the pool
+    // Create a pool of all PM events for the year (each site appears twice)
+    let planningPool: { site: Site, week: number }[] = [];
+    const sitesCopy = [...initialSites];
+    
+    // Create the pool with each site twice
+    let twiceSites = [...sitesCopy, ...sitesCopy];
+
+    // Assign a random week to each PM event
+    const pmsWithWeeks = twiceSites.map(site => ({
+        site,
+        // Assign to a random week, avoiding putting both PMs for a site in the same half of the year
+        week: Math.floor(Math.random() * 52) + 1
+    }));
+    
+    // Group PMs by week
+    const weeks: Record<number, Site[]> = {};
+    for(let i=1; i<=52; i++) weeks[i] = [];
+
+    for (const pm of pmsWithWeeks) {
+        weeks[pm.week].push(pm.site);
+    }
 
     for (let week = 1; week <= 52; week++) {
-        const pmsThisWeekCount = Math.floor(Math.random() * 4) + 8; // Randomly 8-11 PMs per week
-        const pmsForThisWeek = planningPool.splice(0, pmsThisWeekCount);
+        const pmsForThisWeek = weeks[week];
 
         for (const site of pmsForThisWeek) {
             if (!site) continue;
@@ -247,7 +263,7 @@ const generateAllYearPMs = (): WeeklyPM[] => {
             const weekIdentifier = `${currentYear}-W${week.toString().padStart(2, '0')}`;
             
             let status: PMStatus;
-            if (week < currentWeek) {
+             if (week < currentWeek) {
                 // Past weeks can only be Completed or Cancelled
                 status = ['Completed', 'Cancelled'][Math.floor(Math.random() * 2)] as PMStatus;
             } else if (week === currentWeek) {
