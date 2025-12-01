@@ -59,10 +59,10 @@ const prompt = ai.definePrompt({
 
 **Input Data:**
 -   Target PM Count: {{targetSiteCount}}
--   Overdue Sites (High Priority): {{jsonStringify overdueSites}}
--   All Sites (for filling): {{jsonStringify allSites}}
--   Technicians (for reference): {{jsonStringify technicians}}
--   Existing PMs This Week (Exclude these): {{jsonStringify existingPMsForWeek}}
+-   Overdue Sites (High Priority): {{overdueSites}}
+-   All Sites (for filling): {{allSites}}
+-   Technicians (for reference): {{technicians}}
+-   Existing PMs This Week (Exclude these): {{existingPMsForWeek}}
 `,
 });
 
