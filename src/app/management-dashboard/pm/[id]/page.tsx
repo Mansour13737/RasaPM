@@ -74,6 +74,8 @@ export default function PMDetailPage({ params }: { params: { id: string } }) {
   const { users, sites, weeklyPMs, tasks, updateWeeklyPM } = useContext(AppContext);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
 
+  const { id: pmId } = params;
+
   useEffect(() => {
       const userString = localStorage.getItem('user');
       if (userString) {
@@ -81,7 +83,7 @@ export default function PMDetailPage({ params }: { params: { id: string } }) {
       }
   }, []);
 
-  const pm = useMemo(() => weeklyPMs.find(p => p.id === params.id), [params.id, weeklyPMs]);
+  const pm = useMemo(() => weeklyPMs.find(p => p.id === pmId), [pmId, weeklyPMs]);
   const site = useMemo(() => sites.find(s => s.id === pm?.siteId), [pm, sites]);
   const technician = useMemo(() => users.find(u => u.id === pm?.assignedTechnicianId), [pm, users]);
   

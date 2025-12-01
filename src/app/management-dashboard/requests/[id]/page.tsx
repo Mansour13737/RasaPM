@@ -41,6 +41,8 @@ export default function RequestDetailPage({
   const { users, techRequests, updateTechRequest } = useContext(AppContext);
   const [currentUser, setCurrentUser] = useState<UserType | null>(null);
 
+  const { id: requestId } = params;
+
   useEffect(() => {
     const userString = localStorage.getItem('user');
     if (userString) {
@@ -49,8 +51,8 @@ export default function RequestDetailPage({
   }, []);
 
   const request = useMemo(
-    () => techRequests.find((r) => r.id === params.id),
-    [params.id, techRequests]
+    () => techRequests.find((r) => r.id === requestId),
+    [requestId, techRequests]
   );
   const technician = useMemo(
     () => users.find((u) => u.id === request?.technicianId),

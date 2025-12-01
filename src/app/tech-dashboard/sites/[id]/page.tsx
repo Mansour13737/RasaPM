@@ -60,10 +60,11 @@ export default function TechSiteDetailPage({
 }) {
     const { sites, weeklyPMs, changeRequests, users } = useContext(AppContext);
     const [loading, setLoading] = useState(true);
+    const { id: siteId } = params;
 
-    const site = useMemo(() => sites.find(s => s.id === params.id), [params.id, sites]);
-    const pms = useMemo(() => weeklyPMs.filter(pm => pm.siteId === params.id), [params.id, weeklyPMs]);
-    const crs = useMemo(() => changeRequests.filter(cr => cr.siteId === params.id), [params.id, changeRequests]);
+    const site = useMemo(() => sites.find(s => s.id === siteId), [siteId, sites]);
+    const pms = useMemo(() => weeklyPMs.filter(pm => pm.siteId === siteId), [siteId, weeklyPMs]);
+    const crs = useMemo(() => changeRequests.filter(cr => cr.siteId === siteId), [siteId, changeRequests]);
 
     useEffect(() => {
         const timer = setTimeout(() => setLoading(false), 300);

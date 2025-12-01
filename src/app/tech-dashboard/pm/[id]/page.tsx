@@ -105,7 +105,9 @@ export default function PMDetailPage({ params }: { params: { id: string } }) {
   const { users, sites, weeklyPMs, tasks, updateWeeklyPM } = useContext(AppContext);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
 
-  const pm = useMemo(() => weeklyPMs.find(p => p.id === params.id), [params.id, weeklyPMs]);
+  const { id: pmId } = params;
+  
+  const pm = useMemo(() => weeklyPMs.find(p => p.id === pmId), [pmId, weeklyPMs]);
   
   const [taskResults, setTaskResults] = useState<TaskResult[]>([]);
   const [newComment, setNewComment] = useState('');

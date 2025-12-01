@@ -365,9 +365,11 @@ export default function SiteDetailPage({ params }: { params: { id: string } }) {
   const { sites, weeklyPMs, changeRequests, users } = useContext(AppContext);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
 
-  const site = useMemo(() => sites.find((s) => s.id === params.id), [params.id, sites]);
-  const pms = useMemo(() => weeklyPMs.filter((pm) => pm.siteId === params.id), [params.id, weeklyPMs]);
-  const crs = useMemo(() => changeRequests.filter((cr) => cr.siteId === params.id), [params.id, changeRequests]);
+  const { id: siteId } = params;
+
+  const site = useMemo(() => sites.find((s) => s.id === siteId), [siteId, sites]);
+  const pms = useMemo(() => weeklyPMs.filter((pm) => pm.siteId === siteId), [siteId, weeklyPMs]);
+  const crs = useMemo(() => changeRequests.filter((cr) => cr.siteId === siteId), [siteId, changeRequests]);
 
   React.useEffect(() => {
     const userString = localStorage.getItem('user');
