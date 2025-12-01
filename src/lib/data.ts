@@ -1,4 +1,4 @@
-import type { User, Site, WeeklyPM, ChangeRequest, Task } from './types';
+import type { User, Site, WeeklyPM, ChangeRequest, Task, TechRequest } from './types';
 
 export const initialUsers: User[] = [
   {
@@ -370,4 +370,27 @@ export const initialChangeRequests: ChangeRequest[] = [
     priority: 'زیاد',
     photos: ['/placeholder-images/cr-1.jpg'],
   },
+];
+
+export const initialTechRequests: TechRequest[] = [
+    {
+        id: 'req-1',
+        technicianId: 'user-tech-1',
+        title: 'نیاز به کابل شبکه CAT6',
+        type: 'درخواست تجهیزات',
+        description: 'برای سایت 201000 نیاز به 50 متر کابل شبکه CAT6 دارم.',
+        priority: 'بالا',
+        status: 'جدید',
+        createdAt: '2024-07-15T10:00:00Z'
+    },
+    {
+        id: 'req-2',
+        technicianId: 'user-tech-1',
+        title: 'پیشنهاد تغییر در چک‌لیست UPS',
+        type: 'پیشنهاد',
+        description: 'پیشنهاد می‌کنم بخش مربوط به بررسی ولتاژ باتری‌ها نیز به تسک تست UPS اضافه شود.',
+        priority: 'پایین',
+        status: 'در حال بررسی',
+        createdAt: '2024-07-14T15:30:00Z'
+    }
 ];

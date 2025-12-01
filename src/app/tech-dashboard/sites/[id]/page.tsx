@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import { sites, weeklyPMs, changeRequests, users } from '@/lib/data';
 import { notFound } from 'next/navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -21,9 +20,10 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, CalendarDays } from 'lucide-react';
+import { ChevronLeft, CalendarDays, ArrowLeft } from 'lucide-react';
 import type { CRPriority, CRStatus, Site, WeeklyPM, ChangeRequest, User } from '@/lib/types';
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useContext } from 'react';
+import { AppContext } from '@/context/AppContext';
 
 function getPriorityBadgeVariant(priority: CRPriority) {
   switch (priority) {
@@ -58,11 +58,12 @@ export default function TechSiteDetailPage({
 }: {
   params: { id: string };
 }) {
+    const { sites, weeklyPMs, changeRequests, users } = useContext(AppContext);
     const [loading, setLoading] = useState(true);
 
-    const site = useMemo(() => sites.find(s => s.id === params.id), [params.id]);
-    const pms = useMemo(() => weeklyPMs.filter(pm => pm.siteId === params.id), [params.id]);
-    const crs = useMemo(() => changeRequests.filter(cr => cr.siteId === params.id), [params.id]);
+    const site = useMemo(() => sites.find(s => s.id === params.id), [params.id, sites]);
+    const pms = useMemo(() => weeklyPMs.filter(pm => pm.siteId === params.id), [params.id, weeklyPMs]);
+    const crs = useMemo(() => changeRequests.filter(cr => cr.siteId === params.id), [params.id, changeRequests]);
 
     useEffect(() => {
         const timer = setTimeout(() => setLoading(false), 300);
@@ -81,9 +82,17 @@ export default function TechSiteDetailPage({
 
   return (
     <div className="container mx-auto">
-      <header className="mb-6">
-        <h1 className="text-3xl font-bold font-headline">{site.name}</h1>
-        <p className="text-muted-foreground">{site.location}</p>
+      <header className="flex items-center justify-between mb-6">
+        <div>
+            <h1 className="text-3xl font-bold font-headline">{site.name}</h1>
+            <p className="text-muted-foreground">{site.location}</p>
+        </div>
+         <Link href="/tech-dashboard/sites">
+          <Button variant="outline">
+            <ArrowLeft className="ml-2 h-4 w-4" />
+            بازگشت به لیست سایت‌ها
+          </Button>
+        </Link>
       </header>
 
       <Tabs defaultValue="pms" dir="rtl">
@@ -101,7 +110,7 @@ export default function TechSiteDetailPage({
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {pms.map((pm) => (
+                {pms.length > 0 ? pms.map((pm) => (
                   <Link href={`/tech-dashboard/pm/${pm.id}`} key={pm.id}>
                     <div className="border rounded-lg p-4 flex justify-between items-center hover:bg-accent hover:text-accent-foreground transition-colors">
                       <div className="flex items-center gap-3">
@@ -132,7 +141,11 @@ export default function TechSiteDetailPage({
                       </div>
                     </div>
                   </Link>
-                ))}
+                )): (
+                     <p className="text-center text-muted-foreground py-8">
+                        هنوز هیچ PMی برای این سایت ثبت نشده است.
+                    </p>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -156,7 +169,7 @@ export default function TechSiteDetailPage({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {crs.map((cr) => (
+                  {crs.length > 0 ? crs.map((cr) => (
                     <TableRow key={cr.id}>
                       <TableCell className="font-medium">{cr.title}</TableCell>
                       <TableCell>
@@ -173,7 +186,13 @@ export default function TechSiteDetailPage({
                         {new Date(cr.createdAt).toLocaleDateString('fa-IR')}
                       </TableCell>
                     </TableRow>
-                  ))}
+                  )): (
+                    <TableRow>
+                        <TableCell colSpan={4} className="text-center h-24">
+                            هیچ CRی برای این سایت ثبت نشده است.
+                        </TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
             </CardContent>

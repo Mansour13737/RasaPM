@@ -1,8 +1,8 @@
 'use client';
 
 import React, { createContext, useState, ReactNode } from 'react';
-import type { User, Site, WeeklyPM, ChangeRequest, Task } from '@/lib/types';
-import { initialUsers, initialSites, initialWeeklyPMs, initialChangeRequests, initialTasks } from '@/lib/data';
+import type { User, Site, WeeklyPM, ChangeRequest, Task, TechRequest } from '@/lib/types';
+import { initialUsers, initialSites, initialWeeklyPMs, initialChangeRequests, initialTasks, initialTechRequests } from '@/lib/data';
 
 interface AppContextType {
   users: User[];
@@ -14,6 +14,8 @@ interface AppContextType {
   updateWeeklyPM: (pm: WeeklyPM) => void;
   changeRequests: ChangeRequest[];
   tasks: Task[];
+  techRequests: TechRequest[];
+  setTechRequests: React.Dispatch<React.SetStateAction<TechRequest[]>>;
 }
 
 export const AppContext = createContext<AppContextType>({
@@ -26,6 +28,8 @@ export const AppContext = createContext<AppContextType>({
   updateWeeklyPM: () => {},
   changeRequests: [],
   tasks: [],
+  techRequests: [],
+  setTechRequests: () => {},
 });
 
 export const AppProvider = ({ children }: { children: ReactNode }) => {
@@ -34,6 +38,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [weeklyPMs, setWeeklyPMs] = useState<WeeklyPM[]>(initialWeeklyPMs);
   const [changeRequests, setChangeRequests] = useState<ChangeRequest[]>(initialChangeRequests);
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
+  const [techRequests, setTechRequests] = useState<TechRequest[]>(initialTechRequests);
 
   const addWeeklyPM = (pm: WeeklyPM) => {
     setWeeklyPMs(prevPMs => [pm, ...prevPMs]);
@@ -55,7 +60,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         addWeeklyPM,
         updateWeeklyPM,
         changeRequests, 
-        tasks 
+        tasks,
+        techRequests,
+        setTechRequests
     }}>
       {children}
     </AppContext.Provider>

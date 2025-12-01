@@ -78,3 +78,18 @@ export interface ChangeRequest {
   priority: CRPriority;
   photos: string[];
 }
+
+export type TechRequestType = 'درخواست تجهیزات' | 'رسیدگی به مشکل' | 'پیشنهاد';
+export type TechRequestPriority = 'فوری' | 'بالا' | 'متوسط' | 'پایین';
+export type TechRequestStatus = 'جدید' | 'در حال بررسی' | 'انجام شده' | 'رد شده';
+
+export interface TechRequest {
+    id: string;
+    technicianId: string;
+    title: string;
+    type: TechRequestType;
+    priority: TechRequestPriority;
+    description: string;
+    status: TechRequestStatus;
+    createdAt: string;
+}

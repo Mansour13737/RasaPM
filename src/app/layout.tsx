@@ -2,9 +2,9 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { AppProvider } from '@/context/AppContext';
-import { Inter } from 'next/font/google';
+import { Vazirmatn } from 'next/font/google';
 
-const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
+const vazirmatn = Vazirmatn({ subsets: ['latin'], variable: '--font-vazirmatn' });
 
 const APP_NAME = 'RasaPM';
 const APP_DESCRIPTION = 'یک اپلیکیشن PWA برای مدیریت PMهای هفتگی سایت‌ها.';
@@ -35,7 +35,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fa" dir="rtl">
-      <body className={`${inter.variable} font-body antialiased`}>
+      <body className={`${vazirmatn.variable} font-body antialiased`}>
         <AppProvider>
           {children}
           <Toaster />

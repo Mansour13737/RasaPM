@@ -8,6 +8,7 @@ import {
   LogOut,
   Settings,
   User as UserIcon,
+  MessageSquarePlus,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -55,6 +56,13 @@ const Navbar = ({
               >
                 <Building2 className="w-4 h-4" />
                 سایت‌های من
+              </Link>
+              <Link
+                href="/tech-dashboard/requests"
+                className="px-3 py-2 rounded-md text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground flex items-center gap-2"
+              >
+                <MessageSquarePlus className="w-4 h-4" />
+                درخواست‌ها
               </Link>
             </div>
           </div>
