@@ -60,7 +60,7 @@ export default function TechSiteDetailPage({
 }) {
     const { sites, weeklyPMs, changeRequests, users } = useContext(AppContext);
     const [loading, setLoading] = useState(true);
-    const { id: siteId } = params;
+    const siteId = params.id;
 
     const site = useMemo(() => sites.find(s => s.id === siteId), [siteId, sites]);
     const pms = useMemo(() => weeklyPMs.filter(pm => pm.siteId === siteId), [siteId, weeklyPMs]);

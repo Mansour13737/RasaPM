@@ -41,7 +41,7 @@ export default function RequestDetailPage({
   const { users, techRequests, updateTechRequest } = useContext(AppContext);
   const [currentUser, setCurrentUser] = useState<UserType | null>(null);
 
-  const { id: requestId } = params;
+  const requestId = params.id;
 
   useEffect(() => {
     const userString = localStorage.getItem('user');

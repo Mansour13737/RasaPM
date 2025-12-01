@@ -365,7 +365,7 @@ export default function SiteDetailPage({ params }: { params: { id: string } }) {
   const { sites, weeklyPMs, changeRequests, users } = useContext(AppContext);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
 
-  const { id: siteId } = params;
+  const siteId = params.id;
 
   const site = useMemo(() => sites.find((s) => s.id === siteId), [siteId, sites]);
   const pms = useMemo(() => weeklyPMs.filter((pm) => pm.siteId === siteId), [siteId, weeklyPMs]);

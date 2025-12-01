@@ -74,7 +74,7 @@ export default function PMDetailPage({ params }: { params: { id: string } }) {
   const { users, sites, weeklyPMs, tasks, updateWeeklyPM } = useContext(AppContext);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
 
-  const { id: pmId } = params;
+  const pmId = params.id;
 
   useEffect(() => {
       const userString = localStorage.getItem('user');
