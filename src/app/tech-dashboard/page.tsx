@@ -40,6 +40,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { OverduePMsAlert } from '@/components/overdue-pms-alert';
 
 const ITEMS_PER_PAGE = 5;
 
@@ -216,6 +217,8 @@ export default function TechnicianDashboardPage() {
           است.
         </p>
       </header>
+      
+      <OverduePMsAlert />
 
        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
