@@ -61,16 +61,14 @@ import {
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
-import React, { useEffect, useState } from 'react';
-import {
-  getSite,
-  getPMsForSite,
-  getCRsForSite,
-  getSites,
-  getTechnicians,
-  getUsers,
-} from '@/lib/firestore';
-import { useUser } from '@/firebase';
+import React, { useMemo, useState } from 'react';
+import { sites, weeklyPMs, changeRequests, users } from '@/lib/data';
+
+const allSites = sites;
+const allUsers = users;
+const allTechnicians = allUsers.filter(u => u.role === 'Technician');
+const allCities = [...new Set(allSites.map(s => s.location.split(', ')[1]))];
+
 
 function getPriorityBadgeVariant(priority: CRPriority) {
   switch (priority) {
@@ -100,7 +98,7 @@ function getStatusBadgeVariant(status: CRStatus) {
   }
 }
 
-const NewCRSheet = ({ allSites, technicians, cities } : { allSites: Site[], technicians: User[], cities: string[] }) => {
+const NewCRSheet = () => {
   const [startDate, setStartDate] = React.useState<Date>();
   const [endDate, setEndDate] = React.useState<Date>();
 
@@ -155,7 +153,7 @@ const NewCRSheet = ({ allSites, technicians, cities } : { allSites: Site[], tech
                 <SelectValue placeholder="شهر را انتخاب کنید" />
               </SelectTrigger>
               <SelectContent>
-                {cities.map((c) => (
+                {allCities.map((c) => (
                   <SelectItem key={c} value={c}>
                     {c}
                   </SelectItem>
@@ -170,7 +168,7 @@ const NewCRSheet = ({ allSites, technicians, cities } : { allSites: Site[], tech
                 <SelectValue placeholder="نام تکنسین را انتخاب کنید" />
               </SelectTrigger>
               <SelectContent>
-                {technicians.map((t) => (
+                {allTechnicians.map((t) => (
                   <SelectItem key={t.id} value={t.name}>
                     {t.name}
                   </SelectItem>
@@ -252,7 +250,7 @@ const NewCRSheet = ({ allSites, technicians, cities } : { allSites: Site[], tech
   );
 };
 
-const NewPMSheet = ({ allSites }: { allSites: Site[] }) => {
+const NewPMSheet = () => {
   const [startDate, setStartDate] = React.useState<Date>();
   const [endDate, setEndDate] = React.useState<Date>();
 
@@ -366,60 +364,25 @@ const NewPMSheet = ({ allSites }: { allSites: Site[] }) => {
 };
 
 export default function SiteDetailPage({ params }: { params: { id: string } }) {
-  const { user: authUser } = useUser();
-  const [site, setSite] = useState<Site | null>(null);
-  const [pms, setPms] = useState<WeeklyPM[]>([]);
-  const [crs, setCrs] = useState<ChangeRequest[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
-  
-  const [allSites, setAllSites] = useState<Site[]>([]);
-  const [technicians, setTechnicians] = useState<User[]>([]);
-  const [cities, setCities] = useState<string[]>([]);
-  
-  const [loading, setLoading] = useState(true);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
 
-  const isAdmin = authUser?.customClaims?.role === 'Admin';
+  const site = useMemo(() => sites.find((s) => s.id === params.id), [params.id]);
+  const pms = useMemo(() => weeklyPMs.filter((pm) => pm.siteId === params.id), [params.id]);
+  const crs = useMemo(() => changeRequests.filter((cr) => cr.siteId === params.id), [params.id]);
 
-
-  useEffect(() => {
-    async function fetchData() {
-        setLoading(true);
-        try {
-            const [siteData, pmsData, crsData, usersData, allSitesData, techniciansData] = await Promise.all([
-                getSite(params.id),
-                getPMsForSite(params.id),
-                getCRsForSite(params.id),
-                getUsers(),
-                getSites(),
-                getTechnicians()
-            ]);
-
-            if (!siteData) {
-                notFound();
-                return;
-            }
-
-            setSite(siteData);
-            setPms(pmsData);
-            setCrs(crsData);
-            setUsers(usersData);
-            setAllSites(allSitesData);
-            setTechnicians(techniciansData);
-            setCities([...new Set(allSitesData.map(s => s.location.split(', ')[1]))]);
-
-        } catch (error) {
-            console.error("Failed to fetch site details:", error);
-            notFound();
-        } finally {
-            setLoading(false);
-        }
+  React.useEffect(() => {
+    const userString = localStorage.getItem('user');
+    if (userString) {
+      setCurrentUser(JSON.parse(userString));
     }
-    fetchData();
-  }, [params.id]);
+  }, []);
 
-  if (loading || !site) {
-    return <div className="container mx-auto"><p>در حال بارگذاری...</p></div>;
+  if (!site) {
+    notFound();
+    return null;
   }
+
+  const isAdmin = currentUser?.role === 'Admin';
 
   return (
     <div className="container mx-auto">
@@ -450,7 +413,7 @@ export default function SiteDetailPage({ params }: { params: { id: string } }) {
                   PMهای ثبت شده برای این سایت را مشاهده و مدیریت کنید.
                 </CardDescription>
               </div>
-              {isAdmin && <NewPMSheet allSites={allSites} />}
+              {isAdmin && <NewPMSheet />}
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
@@ -502,7 +465,7 @@ export default function SiteDetailPage({ params }: { params: { id: string } }) {
                   CRهای ثبت شده برای این سایت را مشاهده و مدیریت کنید.
                 </CardDescription>
               </div>
-              {isAdmin && <NewCRSheet allSites={allSites} technicians={technicians} cities={cities} />}
+              {isAdmin && <NewCRSheet />}
             </CardHeader>
             <CardContent>
               <Table>

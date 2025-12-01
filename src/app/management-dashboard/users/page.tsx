@@ -23,7 +23,6 @@ import {
   SheetHeader,
   SheetTitle,
   SheetTrigger,
-  SheetClose,
 } from '@/components/ui/sheet';
 import {
   AlertDialog,
@@ -40,7 +39,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { PlusCircle, Edit, Trash2 } from 'lucide-react';
-import { getUsers, addUser, updateUser, deleteUser } from '@/lib/firestore'; // Using firestore
+import { users as initialUsers } from '@/lib/data'; // Using mock data
 import type { User, UserRole } from '@/lib/types';
 import {
   Select,
@@ -55,50 +54,49 @@ const UserForm = ({
   user,
   onSave,
   onClose,
+  currentUser,
 }: {
   user?: User | null;
-  onSave: (
-    user: Omit<User, 'id' | 'avatarUrl'> & {
-      id?: string;
-      password?: string;
-    }
-  ) => void;
+  onSave: (user: User) => void;
   onClose: () => void;
+  currentUser: User | null;
 }) => {
   const [name, setName] = useState(user?.name || '');
+  const [username, setUsername] = useState(user?.username || '');
   const [email, setEmail] = useState(user?.email || '');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState<UserRole>(user?.role || 'Technician');
   const { toast } = useToast();
 
+  const isEditingSelf = user?.id === currentUser?.id;
+  const canEditRole = currentUser?.role === 'Admin' && !isEditingSelf;
+  const canEditFields = currentUser?.role === 'Admin' || (currentUser?.role === 'PM' && user?.role === 'Technician');
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !email || !role || (!user && !password)) {
+    if (!name || !email || !role || !username || (!user && !password)) {
       toast({
         variant: 'destructive',
         title: 'خطا',
-        description: 'تمام فیلدها باید پر شوند.',
+        description: 'تمام فیلدهای ستاره‌دار باید پر شوند.',
       });
       return;
     }
+    
+    // In a real app, you'd have better ID generation
+    const id = user?.id || `user-${Math.random().toString(36).substr(2, 9)}`;
 
-    const userData: Omit<User, 'id' | 'avatarUrl'> & {
-      id?: string;
-      password?: string;
-    } = {
+    const savedUser: User = {
+      id: id,
       name,
+      username,
       email,
       role,
+      avatarUrl: user?.avatarUrl || `https://i.pravatar.cc/150?u=${id}`,
+      password: password || user?.password,
     };
-
-    if (user) {
-      userData.id = user.id;
-    }
-    if (password) {
-      userData.password = password;
-    }
-
-    onSave(userData);
+    
+    onSave(savedUser);
   };
 
   return (
@@ -110,6 +108,17 @@ const UserForm = ({
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="نام کامل کاربر"
+          disabled={!canEditFields}
+        />
+      </div>
+      <div>
+        <Label htmlFor="username">نام کاربری</Label>
+        <Input
+          id="username"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          placeholder="username"
+          disabled={!!user}
         />
       </div>
       <div>
@@ -120,7 +129,7 @@ const UserForm = ({
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="user@example.com"
-          disabled={!!user} // Disable email editing
+          disabled={!canEditFields}
         />
       </div>
        {!user && (
@@ -141,6 +150,7 @@ const UserForm = ({
         <Select
           value={role}
           onValueChange={(value) => setRole(value as UserRole)}
+          disabled={!canEditRole}
         >
           <SelectTrigger>
             <SelectValue placeholder="نقش کاربر را انتخاب کنید" />
@@ -148,9 +158,15 @@ const UserForm = ({
           <SelectContent>
             <SelectItem value="Technician">Technician</SelectItem>
             <SelectItem value="PM">PM</SelectItem>
+            <SelectItem value="RegionalManager">Regional Manager</SelectItem>
             <SelectItem value="Admin">Admin</SelectItem>
           </SelectContent>
         </Select>
+         {!canEditRole && (
+            <p className="text-xs text-muted-foreground mt-1">
+                {isEditingSelf ? 'شما نمی‌توانید نقش خود را تغییر دهید.' : 'شما اجازه تغییر نقش این کاربر را ندارید.'}
+            </p>
+         )}
       </div>
       <div className="flex justify-end gap-2">
         <Button type="button" variant="outline" onClick={onClose}>
@@ -163,90 +179,72 @@ const UserForm = ({
 };
 
 export default function UsersPage() {
-  const [users, setUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<User[]>(initialUsers);
   const [loading, setLoading] = useState(true);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [deletingUser, setDeletingUser] = useState<User | null>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const { toast } = useToast();
 
-  const fetchUsers = async () => {
-    setLoading(true);
-    try {
-      const usersData = await getUsers();
-      setUsers(usersData);
-    } catch (error) {
-      console.error('Failed to fetch users:', error);
-      toast({
-        variant: 'destructive',
-        title: 'خطا در بارگیری کاربران',
-        description: 'مشکلی در ارتباط با پایگاه داده رخ داده است.',
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    fetchUsers();
+    const userString = localStorage.getItem('user');
+    if (userString) {
+      setCurrentUser(JSON.parse(userString));
+    }
+    const timer = setTimeout(() => setLoading(false), 500); // Simulate loading
+    return () => clearTimeout(timer);
   }, []);
 
-  const handleSaveUser = async (
-    userData: Omit<User, 'id' | 'avatarUrl'> & { id?: string, password?: string }
-  ) => {
-    try {
-      if (userData.id) {
-        await updateUser(userData.id, {
-          name: userData.name,
-          role: userData.role,
-        });
-        toast({
-          title: 'موفقیت',
-          description: 'کاربر با موفقیت به‌روزرسانی شد.',
-        });
-      } else if (userData.password) {
-        await addUser({
-            name: userData.name,
-            email: userData.email,
-            role: userData.role,
-            password: userData.password
-        });
-        toast({
-          title: 'موفقیت',
-          description: 'کاربر جدید با موفقیت اضافه شد.',
-        });
-      }
-      fetchUsers(); // Refresh the list
-      setIsSheetOpen(false);
-      setEditingUser(null);
-    } catch (error: any) {
-      console.error('Failed to save user:', error);
-      toast({
-        variant: 'destructive',
-        title: 'خطا در ذخیره کاربر',
-        description: error.message || 'لطفاً دوباره تلاش کنید.',
-      });
+  const handleSaveUser = (userData: User) => {
+    const isNewUser = !users.some(u => u.id === userData.id);
+    
+    if(isNewUser && users.some(u => u.username === userData.username)) {
+         toast({
+            variant: 'destructive',
+            title: 'خطا',
+            description: 'این نام کاربری قبلا استفاده شده است.',
+          });
+          return;
     }
-  };
 
-  const handleDeleteUser = async () => {
-    if (!deletingUser) return;
-    try {
-        await deleteUser(deletingUser.id);
+    if (isNewUser) {
+        setUsers(prev => [...prev, userData]);
+         toast({
+            title: 'موفقیت',
+            description: 'کاربر جدید با موفقیت اضافه شد.',
+         });
+    } else {
+        setUsers(prev => prev.map(u => u.id === userData.id ? userData : u));
         toast({
             title: 'موفقیت',
-            description: `کاربر ${deletingUser.name} با موفقیت حذف شد.`,
+            description: 'کاربر با موفقیت به‌روزرسانی شد.',
         });
-        fetchUsers(); // Refresh the list
-        setDeletingUser(null);
-    } catch (error: any) {
-        console.error('Failed to delete user:', error);
-        toast({
-            variant: 'destructive',
-            title: 'خطا در حذف کاربر',
-            description: error.message || 'لطفاً دوباره تلاش کنید.',
-      });
     }
+    
+    setIsSheetOpen(false);
+    setEditingUser(null);
+  };
+
+  const handleDeleteUser = () => {
+    if (!deletingUser) return;
+
+    if (deletingUser.id === currentUser?.id) {
+         toast({
+            variant: 'destructive',
+            title: 'خطا',
+            description: 'شما نمی‌توانید حساب کاربری خود را حذف کنید.',
+        });
+        setDeletingUser(null);
+        return;
+    }
+
+    setUsers(prev => prev.filter(u => u.id !== deletingUser.id));
+    toast({
+        title: 'موفقیت',
+        description: `کاربر ${deletingUser.name} با موفقیت حذف شد.`,
+    });
+    setDeletingUser(null);
   };
 
   const openAddSheet = () => {
@@ -259,6 +257,13 @@ export default function UsersPage() {
     setIsSheetOpen(true);
   };
 
+  const canPerformAction = (user: User) => {
+      if (!currentUser) return false;
+      if (currentUser.role === 'Admin') return true;
+      if (currentUser.role === 'PM' && user.role === 'Technician') return true;
+      return false;
+  }
+
   return (
     <div className="container mx-auto">
       <Card>
@@ -269,10 +274,12 @@ export default function UsersPage() {
               کاربران سیستم را اضافه، ویرایش یا حذف کنید.
             </CardDescription>
           </div>
-          <Button onClick={openAddSheet}>
-            <PlusCircle className="ml-2 h-4 w-4" />
-            افزودن کاربر
-          </Button>
+          {currentUser?.role === 'Admin' && (
+            <Button onClick={openAddSheet}>
+                <PlusCircle className="ml-2 h-4 w-4" />
+                افزودن کاربر
+            </Button>
+          )}
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -302,6 +309,7 @@ export default function UsersPage() {
                       variant="outline"
                       size="sm"
                       onClick={() => openEditSheet(user)}
+                      disabled={!canPerformAction(user) && user.id !== currentUser?.id}
                     >
                       <Edit className="h-4 w-4" />
                     </Button>
@@ -311,6 +319,7 @@ export default function UsersPage() {
                           variant="destructive"
                           size="sm"
                           onClick={() => setDeletingUser(user)}
+                           disabled={!canPerformAction(user) || user.id === currentUser?.id}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -358,6 +367,7 @@ export default function UsersPage() {
               user={editingUser}
               onSave={handleSaveUser}
               onClose={() => setIsSheetOpen(false)}
+              currentUser={currentUser}
             />
           </div>
         </SheetContent>

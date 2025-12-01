@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Card,
   CardContent,
@@ -38,12 +38,7 @@ import {
   Calendar as CalendarIcon,
   FilePlus2,
 } from 'lucide-react';
-import {
-  getUsers,
-  getSites,
-  getWeeklyPMs,
-  getTechnicians,
-} from '@/lib/firestore';
+import { users, sites, weeklyPMs } from '@/lib/data'; // Using mock data
 import type { User, PMStatus, WeeklyPM, Site } from '@/lib/types';
 import {
   Popover,
@@ -64,6 +59,10 @@ import {
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { AISummary } from '@/components/ai-summary';
+
+const allPMs = weeklyPMs;
+const allUsers = users;
+const allSites = sites;
 
 // Helper function to get the start date of a week from a "YYYY-WNN" string
 function getWeekDate(weekIdentifier: string): Date {
@@ -89,7 +88,7 @@ function getStatusVariant(status: PMStatus) {
   }
 }
 
-const NewPMSheet = ({ sites }: { sites: Site[] }) => {
+const NewPMSheet = () => {
   const [startDate, setStartDate] = React.useState<Date>();
   const [endDate, setEndDate] = React.useState<Date>();
 
@@ -120,7 +119,7 @@ const NewPMSheet = ({ sites }: { sites: Site[] }) => {
                 <SelectValue placeholder="کد سایت را انتخاب کنید" />
               </SelectTrigger>
               <SelectContent>
-                {sites.map((s) => (
+                {allSites.map((s) => (
                   <SelectItem key={s.id} value={s.id}>
                     {s.name} ({s.id})
                   </SelectItem>
@@ -209,20 +208,18 @@ export default function ManagementDashboardPage() {
   const [selectedFlm, setSelectedFlm] = useState('all');
   const [selectedDate, setSelectedDate] = React.useState<Date>();
   
-  const [allPMs, setAllPMs] = useState<WeeklyPM[]>([]);
-  const [sites, setSites] = useState<Site[]>([]);
-  const [allTechnicians, setAllTechnicians] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
-
-
+  const allTechnicians = useMemo(
+    () => allUsers.filter((u) => u.role === 'Technician'),
+    []
+  );
   const allCities = useMemo(
-    () => [...new Set(sites.map((s) => s.location.split(', ')[1]))],
-    [sites]
+    () => [...new Set(allSites.map((s) => s.location.split(', ')[1]))],
+    []
   );
 
   const filteredPMs = useMemo(() => {
     return allPMs.filter((pm) => {
-      const site = sites.find((s) => s.id === pm.siteId);
+      const site = allSites.find((s) => s.id === pm.siteId);
       if (!site) return false;
 
       const siteCity = site.location.split(', ')[1];
@@ -253,7 +250,7 @@ export default function ManagementDashboardPage() {
 
       return matchesSearch && matchesCity && matchesFlm && matchesDate;
     });
-  }, [searchTerm, selectedCity, selectedFlm, selectedDate, allPMs, sites]);
+  }, [searchTerm, selectedCity, selectedFlm, selectedDate]);
 
   const pmByStatus = useMemo(() => {
     return filteredPMs.reduce(
@@ -271,22 +268,22 @@ export default function ManagementDashboardPage() {
   const availableTechnicians = useMemo(() => {
     if (selectedCity === 'all') return allTechnicians;
     const techIdsInCity = new Set(
-      sites
+      allSites
         .filter((s) => s.location.split(', ')[1] === selectedCity)
         .map((s) => s.technicianId)
     );
     return allTechnicians.filter((t) => techIdsInCity.has(t.id));
-  }, [selectedCity, allTechnicians, sites]);
+  }, [selectedCity, allTechnicians]);
 
   const availableCities = useMemo(() => {
     if (selectedFlm === 'all') return allCities;
     const citiesForTech = new Set(
-      sites
+      allSites
         .filter((s) => s.technicianId === selectedFlm)
         .map((s) => s.location.split(', ')[1])
     );
     return allCities.filter((c) => citiesForTech.has(c));
-  }, [selectedFlm, allCities, sites]);
+  }, [selectedFlm, allCities]);
 
   const pmStats = useMemo(() => {
     return allPMs.reduce(
@@ -299,27 +296,6 @@ export default function ManagementDashboardPage() {
       },
       { completed: 0, inProgress: 0, pending: 0, cancelled: 0 }
     );
-  }, [allPMs]);
-
-  useEffect(() => {
-    async function fetchData() {
-      setLoading(true);
-      try {
-        const [pmsData, sitesData, techniciansData] = await Promise.all([
-          getWeeklyPMs(),
-          getSites(),
-          getTechnicians(),
-        ]);
-        setAllPMs(pmsData);
-        setSites(sitesData);
-        setAllTechnicians(techniciansData);
-      } catch (error) {
-        console.error('Failed to fetch dashboard data:', error);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchData();
   }, []);
 
   const handleCityChange = (value: string) => {
@@ -360,7 +336,7 @@ export default function ManagementDashboardPage() {
       <TableBody>
         {pms.length > 0 ? (
           pms.map((pm) => {
-            const site = sites.find((s) => s.id === pm.siteId);
+            const site = allSites.find((s) => s.id === pm.siteId);
             const startDate = getWeekDate(pm.weekIdentifier);
             const endDate = endOfWeek(startDate, { weekStartsOn: 1 });
             return (
@@ -397,10 +373,6 @@ export default function ManagementDashboardPage() {
       </TableBody>
     </Table>
   );
-
-  if (loading) {
-    return <div className='container mx-auto'><p>در حال بارگذاری داشبورد...</p></div>
-  }
 
   return (
     <div className="space-y-6">
@@ -459,7 +431,7 @@ export default function ManagementDashboardPage() {
               برنامه‌های PM را جستجو، فیلتر و مدیریت کنید.
             </CardDescription>
           </div>
-          <NewPMSheet sites={sites} />
+          <NewPMSheet />
         </CardHeader>
         <CardContent>
           <div className="flex flex-col md:flex-row gap-4 mb-4">

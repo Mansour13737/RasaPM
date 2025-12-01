@@ -1,11 +1,13 @@
-export type UserRole = 'Admin' | 'PM' | 'Technician';
+export type UserRole = 'Admin' | 'PM' | 'Technician' | 'RegionalManager';
 
 export interface User {
   id: string;
   name: string;
+  username: string;
   email: string;
   role: UserRole;
   avatarUrl: string;
+  password?: string;
 }
 
 export interface Site {

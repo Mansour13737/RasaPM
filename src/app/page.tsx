@@ -1,28 +1,39 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Logo } from '@/components/icons';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { useUser } from '@/firebase';
+import { User } from '@/lib/types';
 
 export default function HomePage() {
   const router = useRouter();
-  const { user, loading } = useUser();
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!loading && user) {
-      const userRole = (user.customClaims as { role?: string })?.role;
-      if (userRole === 'Admin' || userRole === 'PM') {
-        router.replace('/management-dashboard');
-      } else if (userRole === 'Technician') {
-        router.replace('/tech-dashboard');
+    const userString = localStorage.getItem('user');
+    if (userString) {
+      try {
+        const user: User = JSON.parse(userString);
+        if (user.role === 'Admin' || user.role === 'PM' || user.role === 'RegionalManager') {
+          router.replace('/management-dashboard');
+        } else if (user.role === 'Technician') {
+          router.replace('/tech-dashboard');
+        } else {
+           setLoading(false);
+        }
+      } catch (error) {
+        console.error("Failed to parse user from localStorage", error);
+        localStorage.removeItem('user');
+        setLoading(false);
       }
+    } else {
+      setLoading(false);
     }
-  }, [user, loading, router]);
+  }, [router]);
 
-  if (loading || user) {
+  if (loading) {
     return (
       <main className="flex items-center justify-center min-h-screen">
         <p>در حال بارگذاری...</p>

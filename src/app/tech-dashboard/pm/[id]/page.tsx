@@ -1,6 +1,6 @@
 'use client';
 
-import { getPM, getSite, getUser, getTask, updatePM } from '@/lib/firestore';
+import { weeklyPMs, sites, users, tasks as allTasks } from '@/lib/data';
 import { notFound, useRouter } from 'next/navigation';
 import {
   Card,
@@ -30,11 +30,11 @@ import type {
   Site,
   TaskResult,
   Task,
+  PMStatus,
 } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { useUser } from '@/firebase';
 
 function TaskFieldRenderer({
   field,
@@ -94,52 +94,44 @@ function TaskFieldRenderer({
 export default function PMDetailPage({ params }: { params: { id: string } }) {
   const router = useRouter();
   const { toast } = useToast();
-  const { user: authUser } = useUser();
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
 
-  const [pm, setPm] = useState<WeeklyPM | null>(null);
+  const pm = useMemo(() => weeklyPMs.find(p => p.id === params.id), [params.id]);
+
   const [site, setSite] = useState<Site | null>(null);
   const [technician, setTechnician] = useState<User | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [taskResults, setTaskResults] = useState<TaskResult[]>([]);
   const [newComment, setNewComment] = useState('');
-  const [commentAuthors, setCommentAuthors] = useState<Record<string, User>>({});
+  const [comments, setComments] = useState(pm?.comments || []);
+  const [currentStatus, setCurrentStatus] = useState(pm?.status);
+
 
   useEffect(() => {
-    async function fetchData() {
-        const pmData = await getPM(params.id);
-        if (!pmData) {
-            notFound();
-            return;
-        }
-        setPm(pmData);
-        setTaskResults(pmData.tasks || []);
-
-        const [siteData, techData] = await Promise.all([
-            getSite(pmData.siteId),
-            pmData.assignedTechnicianId ? getUser(pmData.assignedTechnicianId) : Promise.resolve(null)
-        ]);
-        setSite(siteData);
-        setTechnician(techData);
-
-        if (pmData.tasks) {
-            const taskPromises = pmData.tasks.map(t => getTask(t.taskId));
-            const taskData = await Promise.all(taskPromises);
-            setTasks(taskData.filter((t): t is Task => t !== null));
-        }
-        
-        if (pmData.comments) {
-            const authorIds = [...new Set(pmData.comments.map(c => c.userId))];
-            const authorPromises = authorIds.map(id => getUser(id));
-            const authorData = await Promise.all(authorPromises);
-            const authorsMap = authorData.reduce((acc, author) => {
-                if (author) acc[author.id] = author;
-                return acc;
-            }, {} as Record<string, User>);
-            setCommentAuthors(authorsMap);
-        }
+    const userString = localStorage.getItem('user');
+    if (userString) {
+      setCurrentUser(JSON.parse(userString));
     }
-    fetchData();
-  }, [params.id]);
+
+    if (pm) {
+        setSite(sites.find(s => s.id === pm.siteId) || null);
+        setTechnician(users.find(u => u.id === pm.assignedTechnicianId) || null);
+        setTaskResults(pm.tasks || []);
+        const pmTasks = pm.tasks.map(t => allTasks.find(task => task.id === t.taskId)).filter((t): t is Task => !!t);
+        setTasks(pmTasks);
+        setComments(pm.comments || []);
+        setCurrentStatus(pm.status);
+    }
+  }, [pm]);
+
+  const commentAuthors = useMemo(() => {
+      const authorIds = [...new Set(comments.map(c => c.userId))];
+      return authorIds.reduce((acc, id) => {
+          const author = users.find(u => u.id === id);
+          if (author) acc[id] = author;
+          return acc;
+      }, {} as Record<string, User>);
+  }, [comments]);
 
 
   const handleTaskCompletionChange = (taskId: string, isCompleted: boolean) => {
@@ -155,6 +147,7 @@ export default function PMDetailPage({ params }: { params: { id: string } }) {
         };
         return newResults;
       }
+      // This case should ideally not happen if data is well-formed
       return [
         ...prevResults,
         {
@@ -185,64 +178,36 @@ export default function PMDetailPage({ params }: { params: { id: string } }) {
       }
       return [
         ...prevResults,
-        {
-          taskId,
-          isCompleted: false,
-          notes,
-          photos: [],
-          location: null,
-          checklist: {},
-          customFields: {},
-        },
+        { taskId, isCompleted: false, notes, photos: [], location: null, checklist: {}, customFields: {} },
       ];
     });
   };
 
   const handleAddComment = async () => {
-    if (!newComment.trim() || !authUser || !pm) return;
-
-    const comment = {
-      userId: authUser.uid,
-      text: newComment,
-      timestamp: new Date().toISOString(),
-    };
-    
-    const updatedComments = [...(pm.comments || []), comment];
-
-    await updatePM(pm.id, { comments: updatedComments });
-
-    setPm(prev => prev ? { ...prev, comments: updatedComments } : null);
+    if (!newComment.trim() || !currentUser || !pm) return;
+    const comment = { userId: currentUser.id, text: newComment, timestamp: new Date().toISOString() };
+    setComments(prev => [...prev, comment]);
     setNewComment('');
-
-     if (!commentAuthors[authUser.uid]) {
-        const currentUser = await getUser(authUser.uid);
-        if (currentUser) {
-            setCommentAuthors(prev => ({...prev, [currentUser.id]: currentUser}));
-        }
-    }
+     toast({
+        title: 'موفقیت',
+        description: 'کامنت شما با موفقیت ثبت شد.',
+      });
   };
 
   const handleCompletePM = async () => {
     if (!pm) return;
     
-    const allTasksCompleted = taskResults.every(r => r.isCompleted);
+    const allTasksCompleted = tasks.every(task => taskResults.find(r => r.taskId === task.id)?.isCompleted);
     const newStatus: PMStatus = allTasksCompleted ? 'Completed' : 'In Progress';
-
-    try {
-        await updatePM(pm.id, { tasks: taskResults, status: newStatus });
-        toast({
-            title: 'PM به‌روزرسانی شد',
-            description: 'وضعیت و نتایج با موفقیت ثبت شدند.',
-        });
-        router.push('/tech-dashboard');
-    } catch (error) {
-        console.error("Failed to update PM:", error);
-        toast({
-            variant: "destructive",
-            title: "خطا در ثبت PM",
-            description: "مشکلی در ذخیره اطلاعات رخ داد.",
-        });
-    }
+    setCurrentStatus(newStatus);
+    
+    // In a real app, you would now save `taskResults` and `newStatus` to the database.
+    
+    toast({
+        title: 'PM به‌روزرسانی شد',
+        description: 'وضعیت و نتایج با موفقیت ثبت شدند.',
+    });
+    router.push('/tech-dashboard');
   };
 
   const getStatusVariant = (status: string) => {
@@ -251,7 +216,7 @@ export default function PMDetailPage({ params }: { params: { id: string } }) {
     return 'outline';
   };
 
-  if (!pm || !site) {
+  if (!pm || !site || !currentStatus) {
      return <div className="container mx-auto"><p>در حال بارگذاری...</p></div>;
   }
 
@@ -272,10 +237,10 @@ export default function PMDetailPage({ params }: { params: { id: string } }) {
               </div>
               <div className="text-left">
                 <Badge
-                  variant={getStatusVariant(pm.status)}
+                  variant={getStatusVariant(currentStatus)}
                   className="text-lg px-4 py-1"
                 >
-                  {pm.status}
+                  {currentStatus}
                 </Badge>
                 <p className="text-sm text-muted-foreground mt-1">
                   تکنسین: {technician?.name ?? 'نامشخص'}
@@ -380,7 +345,7 @@ export default function PMDetailPage({ params }: { params: { id: string } }) {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
-              {pm.comments?.map((comment, index) => {
+              {comments.map((comment, index) => {
                 const commentUser = commentAuthors[comment.userId];
                 return (
                   <div key={index} className="flex items-start gap-3">

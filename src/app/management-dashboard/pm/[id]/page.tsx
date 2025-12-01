@@ -1,6 +1,6 @@
 'use client';
 
-import { getPM, getSite, getUser, getTask, updatePM } from '@/lib/firestore';
+import { weeklyPMs, sites, users, tasks as allTasks } from '@/lib/data';
 import { notFound, useRouter } from 'next/navigation';
 import {
   Card,
@@ -25,9 +25,8 @@ import { Camera, MapPin, CheckCircle2, Circle, Send } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import type { TaskField, User, WeeklyPM, Site, TaskResult, Task } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { useUser } from '@/firebase';
 
 function TaskFieldRenderer({ field }: { field: TaskField }) {
   const id = `task-field-${field.id}`;
@@ -71,77 +70,58 @@ function TaskFieldRenderer({ field }: { field: TaskField }) {
 }
 
 export default function PMDetailPage({ params }: { params: { id: string } }) {
-  const router = useRouter();
   const { toast } = useToast();
-  const { user: authUser } = useUser();
-
-  const [pm, setPm] = useState<WeeklyPM | null>(null);
-  const [site, setSite] = useState<Site | null>(null);
-  const [technician, setTechnician] = useState<User | null>(null);
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [newComment, setNewComment] = useState('');
-  const [commentAuthors, setCommentAuthors] = useState<Record<string, User>>({});
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
 
   useEffect(() => {
-    async function fetchData() {
-      const pmData = await getPM(params.id);
-      if (!pmData) {
-        notFound();
-        return;
+      const userString = localStorage.getItem('user');
+      if (userString) {
+          setCurrentUser(JSON.parse(userString));
       }
-      setPm(pmData);
+  }, []);
 
-      const [siteData, techData] = await Promise.all([
-        getSite(pmData.siteId),
-        pmData.assignedTechnicianId ? getUser(pmData.assignedTechnicianId) : Promise.resolve(null)
-      ]);
-      setSite(siteData);
-      setTechnician(techData);
+  const pm = useMemo(() => weeklyPMs.find(p => p.id === params.id), [params.id]);
+  const site = useMemo(() => sites.find(s => s.id === pm?.siteId), [pm]);
+  const technician = useMemo(() => users.find(u => u.id === pm?.assignedTechnicianId), [pm]);
+  
+  const tasks = useMemo(() => {
+    if (!pm) return [];
+    return pm.tasks.map(taskResult => {
+      return allTasks.find(t => t.id === taskResult.taskId);
+    }).filter((t): t is Task => t !== undefined);
+  }, [pm]);
 
-      if (pmData.tasks) {
-        const taskPromises = pmData.tasks.map(t => getTask(t.taskId));
-        const taskData = await Promise.all(taskPromises);
-        setTasks(taskData.filter((t): t is Task => t !== null));
-      }
-
-      if (pmData.comments) {
-        const authorIds = [...new Set(pmData.comments.map(c => c.userId))];
-        const authorPromises = authorIds.map(id => getUser(id));
-        const authorData = await Promise.all(authorPromises);
-        const authorsMap = authorData.reduce((acc, author) => {
-            if (author) acc[author.id] = author;
-            return acc;
-        }, {} as Record<string, User>);
-        setCommentAuthors(authorsMap);
-      }
-    }
-    fetchData();
-  }, [params.id]);
+  const [newComment, setNewComment] = useState('');
+  
+  // This state is to simulate updates, in a real app it would be part of the pm object
+  const [comments, setComments] = useState(pm?.comments || []);
+  
+  const commentAuthors = useMemo(() => {
+      if (!comments) return {};
+      const authorIds = [...new Set(comments.map(c => c.userId))];
+      return authorIds.reduce((acc, id) => {
+          const author = users.find(u => u.id === id);
+          if (author) acc[id] = author;
+          return acc;
+      }, {} as Record<string, User>);
+  }, [comments]);
 
 
-  const handleAddComment = async () => {
-    if (!newComment.trim() || !authUser || !pm) return;
+  const handleAddComment = () => {
+    if (!newComment.trim() || !currentUser || !pm) return;
     
     const comment = {
-        userId: authUser.uid,
+        userId: currentUser.id,
         text: newComment,
         timestamp: new Date().toISOString()
     };
-
-    const updatedComments = [...(pm.comments || []), comment];
-    const updatedPm = { ...pm, comments: updatedComments };
-
-    await updatePM(pm.id, { comments: updatedComments });
-    setPm(updatedPm);
-    setNewComment('');
     
-    // Also update author cache
-    if (!commentAuthors[authUser.uid]) {
-        const currentUser = await getUser(authUser.uid);
-        if (currentUser) {
-            setCommentAuthors(prev => ({...prev, [currentUser.id]: currentUser}));
-        }
-    }
+    setComments(prev => [...prev, comment]);
+    setNewComment('');
+     toast({
+        title: 'موفقیت',
+        description: 'کامنت شما با موفقیت ثبت شد.',
+      });
   }
 
   const getStatusVariant = (status: string) => {
@@ -151,7 +131,8 @@ export default function PMDetailPage({ params }: { params: { id: string } }) {
   };
 
   if (!pm || !site) {
-    return <div className="container mx-auto"><p>در حال بارگذاری...</p></div>;
+    notFound();
+    return null;
   }
 
   return (
@@ -293,7 +274,7 @@ export default function PMDetailPage({ params }: { params: { id: string } }) {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
-              {pm.comments?.map((comment, index) => {
+              {comments?.map((comment, index) => {
                 const user = commentAuthors[comment.userId];
                 return (
                   <div key={index} className="flex items-start gap-3">

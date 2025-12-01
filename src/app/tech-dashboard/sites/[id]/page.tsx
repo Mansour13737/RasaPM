@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { getSite, getPMsForSite, getCRsForSite, getUsers } from '@/lib/firestore';
+import { sites, weeklyPMs, changeRequests, users } from '@/lib/data';
 import { notFound } from 'next/navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -23,7 +23,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, CalendarDays } from 'lucide-react';
 import type { CRPriority, CRStatus, Site, WeeklyPM, ChangeRequest, User } from '@/lib/types';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 
 function getPriorityBadgeVariant(priority: CRPriority) {
   switch (priority) {
@@ -58,44 +58,25 @@ export default function TechSiteDetailPage({
 }: {
   params: { id: string };
 }) {
-    const [site, setSite] = useState<Site | null>(null);
-    const [pms, setPms] = useState<WeeklyPM[]>([]);
-    const [crs, setCrs] = useState<ChangeRequest[]>([]);
-    const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
 
+    const site = useMemo(() => sites.find(s => s.id === params.id), [params.id]);
+    const pms = useMemo(() => weeklyPMs.filter(pm => pm.siteId === params.id), [params.id]);
+    const crs = useMemo(() => changeRequests.filter(cr => cr.siteId === params.id), [params.id]);
+
     useEffect(() => {
-        async function fetchData() {
-            setLoading(true);
-            try {
-                const [siteData, pmsData, crsData, usersData] = await Promise.all([
-                    getSite(params.id),
-                    getPMsForSite(params.id),
-                    getCRsForSite(params.id),
-                    getUsers()
-                ]);
-
-                if (!siteData) {
-                    notFound();
-                    return;
-                }
-                setSite(siteData);
-                setPms(pmsData);
-                setCrs(crsData);
-                setUsers(usersData);
-            } catch (error) {
-                console.error("Failed to fetch site data", error);
-                notFound();
-            } finally {
-                setLoading(false);
-            }
-        }
-        fetchData();
-    }, [params.id]);
+        const timer = setTimeout(() => setLoading(false), 300);
+        return () => clearTimeout(timer);
+    }, []);
 
 
-  if (loading || !site) {
+  if (loading) {
     return <div className="container mx-auto"><p>در حال بارگذاری...</p></div>
+  }
+  
+  if (!site) {
+    notFound();
+    return null;
   }
 
   return (

@@ -2,9 +2,6 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import {
-  signInWithEmailAndPassword,
-} from 'firebase/auth';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -16,56 +13,37 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/firebase';
-import type { User } from '@/lib/types';
-import { getUser } from '@/lib/firestore';
+import { users } from '@/lib/data'; // Using mock data
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const { toast } = useToast();
-  const auth = useAuth();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
-    if (!auth) {
-      setError('سرویس احراز هویت در دسترس نیست.');
-      return;
-    }
+    const user = users.find(
+      (u) => u.username === username && u.password === password
+    );
 
-    try {
-      const userCredential = await signInWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
-      const idTokenResult = await userCredential.user.getIdTokenResult();
-      const userRole = (idTokenResult.claims as { role?: string }).role;
-      
-      const userProfile = await getUser(userCredential.user.uid);
-
-
+    if (user) {
+      localStorage.setItem('user', JSON.stringify(user));
       toast({
         title: 'ورود موفق',
-        description: `خوش آمدید ${userProfile?.name}`,
+        description: `خوش آمدید ${user.name}`,
       });
 
-      if (userRole === 'Admin' || userRole === 'PM') {
+      if (user.role === 'Admin' || user.role === 'PM' || user.role === 'RegionalManager') {
         router.push('/management-dashboard');
       } else {
         router.push('/tech-dashboard');
       }
-    } catch (err: any) {
-      if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
-        setError('ایمیل یا رمز عبور اشتباه است.');
-      } else {
-        setError('خطایی در هنگام ورود رخ داد. لطفاً دوباره تلاش کنید.');
-        console.error(err);
-      }
+    } else {
+      setError('نام کاربری یا رمز عبور اشتباه است.');
     }
   };
 
@@ -75,20 +53,20 @@ export default function LoginPage() {
         <CardHeader>
           <CardTitle className="text-2xl">ورود</CardTitle>
           <CardDescription>
-            برای ورود به حساب کاربری خود، ایمیل و رمز عبور خود را وارد کنید.
+            برای ورود به حساب کاربری خود، نام کاربری و رمز عبور خود را وارد کنید.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">ایمیل</Label>
+              <Label htmlFor="username">نام کاربری</Label>
               <Input
-                id="email"
-                type="email"
-                placeholder="m@example.com"
+                id="username"
+                type="text"
+                placeholder="نام کاربری"
                 required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
               />
             </div>
             <div className="space-y-2">

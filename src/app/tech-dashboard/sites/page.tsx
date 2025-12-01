@@ -11,41 +11,29 @@ import {
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useEffect, useMemo, useState } from 'react';
-import { getSitesForTechnician, getUsers } from '@/lib/firestore';
+import { sites, users } from '@/lib/data';
 import type { Site, User } from '@/lib/types';
-import { useUser } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function TechSitesPage() {
-  const { user: authUser, loading: authLoading } = useUser();
-  const [technicianSites, setTechnicianSites] = useState<Site[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function fetchData() {
-        if (authUser) {
-            setLoading(true);
-            try {
-                const [sitesData, usersData] = await Promise.all([
-                    getSitesForTechnician(authUser.uid),
-                    getUsers()
-                ]);
-                setTechnicianSites(sitesData);
-                setUsers(usersData);
-            } catch(e) {
-                console.error("Failed to fetch data:", e);
-            } finally {
-                setLoading(false);
-            }
-        }
+    const userString = localStorage.getItem('user');
+    if (userString) {
+      setCurrentUser(JSON.parse(userString));
     }
-    if (!authLoading) {
-        fetchData();
-    }
-  }, [authUser, authLoading]);
+    const timer = setTimeout(() => setLoading(false), 500);
+    return () => clearTimeout(timer);
+  }, []);
 
-  if (authLoading || loading) {
+  const technicianSites = useMemo(() => {
+    if (!currentUser) return [];
+    return sites.filter(site => site.technicianId === currentUser.id);
+  }, [currentUser]);
+
+  if (loading) {
     return (
       <div className="container mx-auto">
         <p>در حال بارگذاری...</p>

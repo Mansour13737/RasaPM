@@ -21,9 +21,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import type { PMStatus, WeeklyPM, Site, User } from '@/lib/types';
-import { getSites, getPMsForTechnician } from '@/lib/firestore';
+import { sites, weeklyPMs } from '@/lib/data';
 import { format, endOfWeek } from 'date-fns';
-import { useUser } from '@/firebase';
 
 function getWeekDate(weekIdentifier: string): Date {
   const [year, week] = weekIdentifier.split('-W').map(Number);
@@ -48,33 +47,21 @@ function getStatusVariant(status: PMStatus) {
 }
 
 export default function TechnicianDashboardPage() {
-  const { user: authUser, loading: authLoading } = useUser();
-  const [technicianPMs, setTechnicianPMs] = useState<WeeklyPM[]>([]);
-  const [sites, setSites] = useState<Site[]>([]);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function fetchData() {
-      if (authUser) {
-        setLoading(true);
-        try {
-            const [pms, siteData] = await Promise.all([
-                getPMsForTechnician(authUser.uid),
-                getSites()
-            ]);
-            setTechnicianPMs(pms);
-            setSites(siteData);
-        } catch(e) {
-            console.error("Failed to fetch technician data", e);
-        } finally {
-            setLoading(false);
-        }
-      }
+    const userString = localStorage.getItem('user');
+    if (userString) {
+      setCurrentUser(JSON.parse(userString));
     }
-    if (!authLoading) {
-        fetchData();
-    }
-  }, [authUser, authLoading]);
+    setLoading(false);
+  }, []);
+
+  const technicianPMs = useMemo(() => {
+    if (!currentUser) return [];
+    return weeklyPMs.filter(pm => pm.assignedTechnicianId === currentUser.id);
+  }, [currentUser]);
 
   const pmByStatus = useMemo(() => {
     return technicianPMs.reduce(
@@ -144,7 +131,7 @@ export default function TechnicianDashboardPage() {
     </Table>
   );
 
-  if (authLoading || loading) {
+  if (loading) {
     return (
       <div className="container mx-auto">
         <p>در حال بارگذاری اطلاعات کاربر...</p>
@@ -157,7 +144,7 @@ export default function TechnicianDashboardPage() {
       <header className="mb-6">
         <h1 className="text-3xl font-bold font-headline">داشبورد تکنسین</h1>
         <p className="text-muted-foreground">
-          سلام {authUser?.displayName}، برنامه‌های اختصاص یافته به شما در زیر آمده است.
+          سلام {currentUser?.name}، برنامه‌های اختصاص یافته به شما در زیر آمده است.
         </p>
       </header>
 

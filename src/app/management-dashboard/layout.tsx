@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import {
   Building2,
@@ -24,9 +23,6 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Logo } from '@/components/icons';
 import { useEffect, useState } from 'react';
 import type { User } from '@/lib/types';
-import { useUser } from '@/firebase';
-import { signOut } from 'firebase/auth';
-import { getUser } from '@/lib/firestore';
 
 const Navbar = ({
   user,
@@ -130,39 +126,34 @@ export default function ManagementDashboardLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const { user: firebaseUser, auth, loading } = useUser();
   const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!loading) {
-      if (firebaseUser) {
-        const userRole = (firebaseUser.customClaims as { role?: string })
-          ?.role;
-        if (userRole === 'Admin' || userRole === 'PM') {
-            getUser(firebaseUser.uid).then(profile => {
-                if (profile) {
-                    setUser(profile);
-                } else {
-                    // Handle case where user profile doesn't exist in Firestore
-                    if(auth) signOut(auth);
-                    router.replace('/');
-                }
-            })
+    const userString = localStorage.getItem('user');
+    if (userString) {
+      try {
+        const storedUser: User = JSON.parse(userString);
+        if (storedUser.role === 'Admin' || storedUser.role === 'PM' || storedUser.role === 'RegionalManager') {
+          setUser(storedUser);
         } else {
           router.replace('/tech-dashboard');
         }
-      } else {
+      } catch (error) {
+        console.error("Failed to parse user, signing out.", error);
+        localStorage.removeItem('user');
         router.replace('/');
       }
+    } else {
+      router.replace('/');
     }
-  }, [firebaseUser, loading, router, auth]);
+    setLoading(false);
+  }, [router]);
 
-  const handleSignOut = async () => {
-    if (auth) {
-      await signOut(auth);
-      setUser(null);
-      router.push('/');
-    }
+  const handleSignOut = () => {
+    localStorage.removeItem('user');
+    setUser(null);
+    router.push('/');
   };
 
   if (loading || !user) {

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { getSites, getUsers } from '@/lib/firestore'; // Use firestore
+import { sites, users } from '@/lib/data'; // Use mock data
 import {
   Card,
   CardContent,
@@ -16,27 +16,14 @@ import { useEffect, useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function SitesPage() {
-  const [sites, setSites] = useState<Site[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Simulate loading
   useEffect(() => {
-    async function fetchData() {
-      setLoading(true);
-      try {
-        const [sitesData, usersData] = await Promise.all([
-          getSites(),
-          getUsers(),
-        ]);
-        setSites(sitesData);
-        setUsers(usersData);
-      } catch (error) {
-        console.error('Failed to fetch sites or users:', error);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchData();
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 500);
+    return () => clearTimeout(timer);
   }, []);
 
   return (
