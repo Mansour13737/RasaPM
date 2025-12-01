@@ -81,12 +81,53 @@ function getStatusVariant(status: PMStatus) {
 }
 
 const NewPMSheet = () => {
-  const { sites, addWeeklyPM, tasks } = useContext(AppContext);
+  const { sites, addWeeklyPM, tasks, weeklyPMs } = useContext(AppContext);
   const { toast } = useToast();
   const [selectedSiteId, setSelectedSiteId] = React.useState<string>('');
   const [crNumber, setCrNumber] = React.useState('');
   const [comment, setComment] = React.useState('');
   const [weekDate, setWeekDate] = React.useState<Date>();
+  const [isOpen, setIsOpen] = React.useState(false);
+
+  const siteStatuses = useMemo(() => {
+    const statuses: Record<
+      string,
+      { status: PMStatus; isCompletedInHalf: boolean }
+    > = {};
+    const currentWeek = getISOWeek(new Date());
+    const isFirstHalf = currentWeek <= 26;
+    const startWeek = isFirstHalf ? 1 : 27;
+    const endWeek = isFirstHalf ? 26 : 52;
+
+    sites.forEach((site) => {
+      const pmsInCurrentHalf = weeklyPMs.filter((pm) => {
+        const pmWeek = parseInt(pm.weekIdentifier.split('-W')[1]);
+        return (
+          pm.siteId === site.id && pmWeek >= startWeek && pmWeek <= endWeek
+        );
+      });
+
+      const completedPM = pmsInCurrentHalf.find(
+        (pm) => pm.status === 'Completed'
+      );
+      const inProgressPM = pmsInCurrentHalf.find(
+        (pm) => pm.status === 'In Progress'
+      );
+
+      if (completedPM) {
+        statuses[site.id] = { status: 'Completed', isCompletedInHalf: true };
+      } else if (inProgressPM) {
+        statuses[site.id] = {
+          status: 'In Progress',
+          isCompletedInHalf: false,
+        };
+      } else {
+        statuses[site.id] = { status: 'Pending', isCompletedInHalf: false }; // Or any default/available status
+      }
+    });
+    return statuses;
+  }, [sites, weeklyPMs]);
+
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -98,19 +139,28 @@ const NewPMSheet = () => {
       });
       return;
     }
+     if (siteStatuses[selectedSiteId]?.isCompletedInHalf) {
+      toast({
+        variant: 'destructive',
+        title: 'خطا',
+        description: 'برای این سایت در نیمسال جاری PM انجام شده و قابل انتخاب نیست.',
+      });
+      return;
+    }
+
 
     const weekIdentifier = `${getYear(weekDate)}-W${getISOWeek(weekDate)
       .toString()
       .padStart(2, '0')}`;
-    
-    const site = sites.find(s => s.id === selectedSiteId);
+
+    const site = sites.find((s) => s.id === selectedSiteId);
     if (!site) {
-         toast({
-            variant: 'destructive',
-            title: 'خطا',
-            description: 'سایت انتخاب شده یافت نشد.',
-         });
-         return;
+      toast({
+        variant: 'destructive',
+        title: 'خطا',
+        description: 'سایت انتخاب شده یافت نشد.',
+      });
+      return;
     }
 
     const newPM: WeeklyPM = {
@@ -120,18 +170,26 @@ const NewPMSheet = () => {
       assignedTechnicianId: site.technicianId,
       status: 'Pending',
       crNumber: crNumber,
-      tasks: tasks.map(t => ({
-          taskId: t.id,
-          isCompleted: false,
-          notes: '',
-          photos: [],
-          location: null,
-          checklist: {},
-          customFields: {}
+      tasks: tasks.map((t) => ({
+        taskId: t.id,
+        isCompleted: false,
+        notes: '',
+        photos: [],
+        location: null,
+        checklist: {},
+        customFields: {},
       })),
-      comments: comment ? [{ userId: 'user-pm', text: comment, timestamp: new Date().toISOString() }] : [],
+      comments: comment
+        ? [
+            {
+              userId: 'user-pm',
+              text: comment,
+              timestamp: new Date().toISOString(),
+            },
+          ]
+        : [],
     };
-    
+
     addWeeklyPM(newPM);
 
     toast({
@@ -143,11 +201,11 @@ const NewPMSheet = () => {
     setCrNumber('');
     setComment('');
     setWeekDate(undefined);
+    setIsOpen(false);
   };
 
-
   return (
-    <Sheet>
+    <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetTrigger asChild>
         <Button>
           <FilePlus2 className="ml-2 h-4 w-4" />
@@ -169,16 +227,36 @@ const NewPMSheet = () => {
                 <SelectValue placeholder="کد سایت را انتخاب کنید" />
               </SelectTrigger>
               <SelectContent>
-                {sites.map((s) => (
-                  <SelectItem key={s.id} value={s.id}>
-                    {s.name} ({s.location})
-                  </SelectItem>
-                ))}
+                {sites.map((s) => {
+                  const siteStatus = siteStatuses[s.id];
+                  const isDisabled = siteStatus?.isCompletedInHalf;
+                  return (
+                    <SelectItem key={s.id} value={s.id} disabled={isDisabled}>
+                      <div className="flex justify-between w-full items-center">
+                        <span>
+                          {s.name} ({s.location})
+                        </span>
+                        {siteStatus && siteStatus.status !== 'Pending' && (
+                          <Badge
+                            variant={
+                              siteStatus.status === 'Completed'
+                                ? 'default'
+                                : 'secondary'
+                            }
+                            className="mr-auto"
+                          >
+                            {siteStatus.status === 'Completed' ? 'انجام شده' : 'در حال انجام'}
+                          </Badge>
+                        )}
+                      </div>
+                    </SelectItem>
+                  );
+                })}
               </SelectContent>
             </Select>
           </div>
           <div className="grid gap-2">
-             <Label>هفته</Label>
+            <Label>هفته</Label>
             <Popover>
               <PopoverTrigger asChild>
                 <Button
@@ -206,9 +284,14 @@ const NewPMSheet = () => {
               </PopoverContent>
             </Popover>
           </div>
-           <div className="grid gap-2">
+          <div className="grid gap-2">
             <Label htmlFor="pm-cr-number">شماره CR (اختیاری)</Label>
-            <Input id="pm-cr-number" placeholder="شماره CR مرتبط را وارد کنید" value={crNumber} onChange={e => setCrNumber(e.target.value)} />
+            <Input
+              id="pm-cr-number"
+              placeholder="شماره CR مرتبط را وارد کنید"
+              value={crNumber}
+              onChange={(e) => setCrNumber(e.target.value)}
+            />
           </div>
           <div className="grid gap-2">
             <Label htmlFor="pm-comment">کامنت برای تکنسین (اختیاری)</Label>
@@ -216,7 +299,7 @@ const NewPMSheet = () => {
               id="pm-comment"
               placeholder="پیام خود را برای تکنسین بنویسید..."
               value={comment}
-              onChange={e => setComment(e.target.value)}
+              onChange={(e) => setComment(e.target.value)}
             />
           </div>
           <Button type="submit" className="mt-4">
