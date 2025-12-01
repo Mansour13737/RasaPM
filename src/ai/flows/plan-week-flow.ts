@@ -56,10 +56,10 @@ const prompt = ai.definePrompt({
 -   **reasoning**: A detailed, step-by-step explanation of your choices in Persian (Farsi). Explain which overdue sites you prioritized and how you filled the remaining slots to achieve a balanced workload.
 
 **Input Data:**
--   Overdue Sites (High Priority): {{jsonStringify overdueSites}}
--   All Sites: {{jsonStringify allSites}}
--   All Technicians: {{jsonStringify technicians}}
--   Existing PMs This Week (Exclude these): {{jsonStringify existingPMsForWeek}}
+-   Overdue Sites (High Priority): {{overdueSites}}
+-   All Sites: {{allSites}}
+-   All Technicians: {{technicians}}
+-   Existing PMs This Week (Exclude these): {{existingPMsForWeek}}
 -   Target PM Count: {{targetSiteCount}}
 `,
 });
