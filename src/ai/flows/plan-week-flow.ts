@@ -6,7 +6,6 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import type { Site, WeeklyPM, User } from '@/lib/types';
 
 const SiteSchema = z.object({
   id: z.string(),
@@ -59,10 +58,10 @@ const prompt = ai.definePrompt({
 
 **Input Data:**
 -   Target PM Count: {{targetSiteCount}}
--   Overdue Sites (High Priority): {{overdueSites}}
--   All Sites (for filling): {{allSites}}
--   Technicians (for reference): {{technicians}}
--   Existing PMs This Week (Exclude these): {{existingPMsForWeek}}
+-   Overdue Sites (High Priority): {{#each overdueSites}}ID: {{id}}, Name: {{name}}, TechID: {{technicianId}}; {{/each}}
+-   All Sites (for filling): {{#each allSites}}ID: {{id}}, Name: {{name}}, TechID: {{technicianId}}; {{/each}}
+-   Technicians (for reference): {{#each technicians}}ID: {{id}}, Name: {{name}}; {{/each}}
+-   Existing PMs This Week (Exclude these): {{#each existingPMsForWeek}}SiteID: {{siteId}}; {{/each}}
 `,
 });
 
