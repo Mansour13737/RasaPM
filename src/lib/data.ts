@@ -1,4 +1,6 @@
 import type { User, Site, WeeklyPM, ChangeRequest, Task, TechRequest, PMStatus } from './types';
+import { getISOWeek, getYear } from 'date-fns';
+
 
 // --- USER DATA ---
 export const initialUsers: User[] = [
@@ -226,64 +228,58 @@ export const initialTasks: Task[] = [
 
 const generateAllYearPMs = (): WeeklyPM[] => {
     const allPMs: WeeklyPM[] = [];
-    const technicians = initialUsers.filter(u => u.role === 'Technician');
-    const sites = [...initialSites];
-    const statuses: PMStatus[] = ['Pending', 'In Progress', 'Completed', 'Cancelled'];
-    
-    // Shuffle sites for random distribution
-    sites.sort(() => Math.random() - 0.5);
-
-    let siteIndex = 0;
+    let sitesForPlanning = [...initialSites];
     let pmIdCounter = 1;
+    const currentYear = getYear(new Date());
+    const currentWeek = getISOWeek(new Date());
+
+    // Create a pool of sites to be planned for the year (each site appears twice)
+    let planningPool = [...sitesForPlanning, ...sitesForPlanning];
+    planningPool.sort(() => Math.random() - 0.5); // Shuffle the pool
 
     for (let week = 1; week <= 52; week++) {
-        const pmsThisWeek = Math.floor(Math.random() * 4) + 8; // Randomly 8-11 PMs per week
-        for (let i = 0; i < pmsThisWeek; i++) {
+        const pmsThisWeekCount = Math.floor(Math.random() * 4) + 8; // Randomly 8-11 PMs per week
+        const pmsForThisWeek = planningPool.splice(0, pmsThisWeekCount);
+
+        for (const site of pmsForThisWeek) {
+            if (!site) continue;
+
+            const weekIdentifier = `${currentYear}-W${week.toString().padStart(2, '0')}`;
             
-            if (siteIndex >= sites.length) {
-                siteIndex = 0; // Loop back if we've run out of sites
-                sites.sort(() => Math.random() - 0.5); // reshuffle
-            }
-            
-            const site = sites[siteIndex];
-            const assignedTechnician = technicians.find(t => t.id === site.technicianId) || technicians[Math.floor(Math.random() * technicians.length)];
-            const weekIdentifier = `2024-W${week.toString().padStart(2, '0')}`;
-            
-            // Randomly pick a status, with 'Pending' being more likely for future weeks
             let status: PMStatus;
-            const currentWeek = 28; 
-            if (week < currentWeek - 2) {
-                status = 'Completed';
-            } else if (week < currentWeek) {
-                status = ['Completed', 'In Progress', 'Cancelled'][Math.floor(Math.random() * 3)] as PMStatus;
+            if (week < currentWeek) {
+                // Past weeks can only be Completed or Cancelled
+                status = ['Completed', 'Cancelled'][Math.floor(Math.random() * 2)] as PMStatus;
+            } else if (week === currentWeek) {
+                // Current week can have any status
+                status = ['Completed', 'In Progress', 'Pending', 'Cancelled'][Math.floor(Math.random() * 4)] as PMStatus;
             } else {
-                status = ['Pending', 'Pending', 'In Progress'][Math.floor(Math.random() * 3)] as PMStatus;
+                // Future weeks are always Pending
+                status = 'Pending';
             }
+
+            const isCompleted = status === 'Completed';
 
             const pm: WeeklyPM = {
                 id: `pm-${pmIdCounter++}`,
                 weekIdentifier,
                 siteId: site.id,
-                assignedTechnicianId: assignedTechnician.id,
+                assignedTechnicianId: site.technicianId,
                 status: status,
-                crNumber: `CR-2024-${Math.floor(Math.random() * 500) + 1000}`,
-                tasks: initialTasks.map(t => {
-                    const isCompleted = status === 'Completed' ? true : (status === 'In Progress' ? Math.random() > 0.5 : false);
-                    return {
-                        taskId: t.id,
-                        isCompleted: isCompleted,
-                        notes: isCompleted ? 'بررسی انجام شد.' : '',
-                        photos: [],
-                        location: null,
-                        checklist: {},
-                        customFields: {},
-                    };
-                }),
+                crNumber: `CR-${currentYear}-${Math.floor(Math.random() * 500) + 1000}`,
+                tasks: initialTasks.map(t => ({
+                    taskId: t.id,
+                    isCompleted: isCompleted,
+                    notes: isCompleted ? 'بررسی انجام شد.' : '',
+                    photos: [],
+                    location: null,
+                    checklist: {},
+                    customFields: {},
+                })),
                 comments: [],
             };
 
             allPMs.push(pm);
-            siteIndex++;
         }
     }
     return allPMs;
@@ -357,3 +353,5 @@ export const initialTechRequests: TechRequest[] = [
         ]
     }
 ];
+
+    
