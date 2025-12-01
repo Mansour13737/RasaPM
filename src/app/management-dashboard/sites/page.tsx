@@ -6,11 +6,12 @@ import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import type { Site, User } from '@/lib/types';
+import { Button } from '@/components/ui/button';
 import { useEffect, useState, useContext } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AppContext } from '@/context/AppContext';
@@ -19,11 +20,10 @@ export default function SitesPage() {
   const { sites, users } = useContext(AppContext);
   const [loading, setLoading] = useState(true);
 
-  // Simulate loading
   useEffect(() => {
     const timer = setTimeout(() => {
       setLoading(false);
-    }, 500);
+    }, 1000); // Increased loading time for demo
     return () => clearTimeout(timer);
   }, []);
 
@@ -38,16 +38,19 @@ export default function SitesPage() {
 
       {loading ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {[...Array(4)].map((_, i) => (
-            <Card key={i} className="overflow-hidden">
-                <Skeleton className="w-full h-40" />
-                <CardHeader>
-                    <Skeleton className="h-6 w-3/4" />
-                    <Skeleton className="h-4 w-1/2" />
-                </CardHeader>
-                <CardContent>
-                    <Skeleton className="h-8 w-full" />
-                </CardContent>
+          {[...Array(8)].map((_, i) => (
+            <Card key={i} className="overflow-hidden flex flex-col">
+              <Skeleton className="w-full h-40" />
+              <CardHeader className="flex-grow">
+                <Skeleton className="h-6 w-3/4" />
+                <Skeleton className="h-4 w-1/2 mt-2" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-8 w-full" />
+              </CardContent>
+              <CardFooter>
+                 <Skeleton className="h-10 w-full" />
+              </CardFooter>
             </Card>
           ))}
         </div>
@@ -56,30 +59,45 @@ export default function SitesPage() {
           {sites.map((site) => {
             const technician = users.find((u) => u.id === site.technicianId);
             return (
-              <Link href={`/management-dashboard/sites/${site.id}`} key={site.id}>
-                <Card className={`overflow-hidden hover:shadow-lg transition-shadow`}>
-                  <Image
-                    src={site.imageUrl}
-                    alt={site.name}
-                    width={600}
-                    height={400}
-                    className="w-full h-40 object-cover"
-                    data-ai-hint={site.imageHint}
-                  />
-                  <CardHeader>
-                    <CardTitle className="truncate">{site.name}</CardTitle>
-                    <CardDescription>{site.location}</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex justify-between items-center">
-                      <Badge variant="secondary">تکنسین</Badge>
-                      <p className="text-sm font-medium">
-                        {technician?.name || 'نامشخص'}
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
+              <Card
+                key={site.id}
+                className="overflow-hidden hover:shadow-lg transition-shadow flex flex-col"
+              >
+                <Link href={`/management-dashboard/sites/${site.id}`} className="block">
+                  <div className="relative w-full h-40">
+                    <Image
+                      src={site.imageUrl}
+                      alt={site.name}
+                      width={400}
+                      height={300}
+                      className="w-full h-full object-cover"
+                      data-ai-hint={site.imageHint}
+                    />
+                  </div>
+                </Link>
+                <CardHeader className="flex-grow">
+                  <CardTitle className="truncate">{site.name}</CardTitle>
+                  <CardDescription>{site.location}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex justify-between items-center">
+                    <Badge variant="secondary">تکنسین</Badge>
+                    <p className="text-sm font-medium">
+                      {technician?.name || 'نامشخص'}
+                    </p>
+                  </div>
+                </CardContent>
+                <CardFooter>
+                  <Link
+                    href={`/management-dashboard/sites/${site.id}`}
+                    className="w-full"
+                  >
+                    <Button variant="outline" className="w-full">
+                      مشاهده جزئیات
+                    </Button>
+                  </Link>
+                </CardFooter>
+              </Card>
             );
           })}
         </div>

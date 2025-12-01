@@ -416,7 +416,7 @@ export default function SiteDetailPage({ params }: { params: { id: string } }) {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {pms.map((pm) => (
+                {pms.length > 0 ? pms.map((pm) => (
                   <Link
                     href={`/management-dashboard/pm/${pm.id}`}
                     key={pm.id}
@@ -450,7 +450,11 @@ export default function SiteDetailPage({ params }: { params: { id: string } }) {
                       </div>
                     </div>
                   </Link>
-                ))}
+                )) : (
+                   <p className="text-center text-muted-foreground py-8">
+                    هنوز هیچ PMی برای این سایت ثبت نشده است.
+                  </p>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -477,7 +481,7 @@ export default function SiteDetailPage({ params }: { params: { id: string } }) {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {crs.map((cr) => (
+                  {crs.length > 0 ? crs.map((cr) => (
                     <TableRow key={cr.id}>
                       <TableCell className="font-medium">{cr.title}</TableCell>
                       <TableCell>
@@ -494,7 +498,13 @@ export default function SiteDetailPage({ params }: { params: { id: string } }) {
                         {new Date(cr.createdAt).toLocaleDateString('fa-IR')}
                       </TableCell>
                     </TableRow>
-                  ))}
+                  )) : (
+                     <TableRow>
+                        <TableCell colSpan={4} className="text-center h-24">
+                            هیچ CRی برای این سایت ثبت نشده است.
+                        </TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
             </CardContent>
