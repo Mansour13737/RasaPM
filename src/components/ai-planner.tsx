@@ -8,7 +8,6 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-  CardFooter,
 } from '@/components/ui/card';
 import {
   Sheet,
@@ -18,16 +17,23 @@ import {
   SheetDescription,
   SheetFooter,
 } from '@/components/ui/sheet';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { Sparkles, Bot } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 import { AppContext } from '@/context/AppContext';
 import { getISOWeek, getYear } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { planWeek, type PlanWeekOutput } from '@/ai/flows/plan-week-flow';
 import type { WeeklyPM, Site } from '@/lib/types';
-import { OverduePMsAlert, getOverdueSites } from './overdue-pms-alert';
+import { getOverdueSites } from './overdue-pms-alert';
 
 const TARGET_PMS_PER_WEEK = 10;
 
@@ -113,7 +119,7 @@ export function AIPlanner() {
     return plan.suggestedPMs.map(pm => {
         const site = sites.find(s => s.id === pm.siteId);
         const technician = users.find(u => u.id === pm.technicianId);
-        return { site, technician };
+        return { site, technician, reasoning: pm.reasoning };
     })
   }, [plan, sites, users]);
 
@@ -150,24 +156,32 @@ export function AIPlanner() {
                 <CardHeader>
                     <CardTitle className="text-lg">برنامه‌های پیشنهادی ({plan?.suggestedPMs.length} مورد)</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-2">
-                    {suggestedSites.map(({site, technician}, index) => (
-                        <div key={index} className="flex justify-between items-center border-b pb-2">
-                            <div>
-                                <p className="font-semibold">{site?.name}</p>
-                                <p className="text-sm text-muted-foreground">{site?.location}</p>
-                            </div>
-                            <Badge variant="secondary">{technician?.name}</Badge>
-                        </div>
-                    ))}
-                </CardContent>
-            </Card>
-             <Card className="bg-muted/50">
-                <CardHeader>
-                    <CardTitle className="text-lg flex items-center gap-2"><Bot size={20} /> تحلیل هوش مصنوعی</CardTitle>
-                </CardHeader>
                 <CardContent>
-                    <p className="text-sm whitespace-pre-wrap leading-relaxed">{plan?.reasoning}</p>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>سایت</TableHead>
+                                <TableHead>تکنسین</TableHead>
+                                <TableHead>دلیل پیشنهاد</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                        {suggestedSites.map(({site, technician, reasoning}, index) => (
+                            <TableRow key={index}>
+                                <TableCell>
+                                    <div className="font-semibold">{site?.name}</div>
+                                    <div className="text-sm text-muted-foreground">{site?.location}</div>
+                                </TableCell>
+                                <TableCell>
+                                    <Badge variant="secondary">{technician?.name}</Badge>
+                                </TableCell>
+                                <TableCell>
+                                    <Badge variant={reasoning === 'PM معوقه' ? 'destructive' : 'outline'}>{reasoning}</Badge>
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                        </TableBody>
+                    </Table>
                 </CardContent>
             </Card>
           </div>
