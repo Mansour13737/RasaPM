@@ -29,6 +29,8 @@ import {
   XCircle,
   Users,
 } from 'lucide-react';
+import { getISOWeek, getYear } from 'date-fns';
+
 
 function getStatusVariant(status: PMStatus) {
   switch (status) {
@@ -61,6 +63,13 @@ export default function TechnicianDashboardPage() {
     if (!currentUser) return [];
     return weeklyPMs.filter((pm) => pm.assignedTechnicianId === currentUser.id);
   }, [currentUser, weeklyPMs]);
+  
+  const currentWeekIdentifier = `${getYear(new Date())}-W${getISOWeek(new Date())}`;
+
+  const currentWeekCompanyPMs = useMemo(() => {
+    return weeklyPMs.filter(pm => pm.weekIdentifier === currentWeekIdentifier);
+  }, [weeklyPMs, currentWeekIdentifier]);
+
 
   const pmStats = useMemo(() => {
     return technicianPMs.reduce(
@@ -212,22 +221,6 @@ export default function TechnicianDashboardPage() {
 
        <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-             <Users className="h-5 w-5" />
-             وضعیت کلی PMهای شرکت
-          </CardTitle>
-          <CardDescription>
-            آخرین وضعیت برنامه‌های PM ثبت شده برای تمام تکنسین‌ها را مشاهده کنید.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-            <PMTable pms={weeklyPMs} showTechnician={true} />
-        </CardContent>
-      </Card>
-
-
-      <Card>
-        <CardHeader>
           <CardTitle>برنامه‌های PM شما</CardTitle>
           <CardDescription>
             تاریخچه برنامه‌های PM خود را مشاهده و مدیریت کنید.
@@ -264,6 +257,22 @@ export default function TechnicianDashboardPage() {
           </Tabs>
         </CardContent>
       </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+             <Users className="h-5 w-5" />
+             وضعیت PMهای شرکت (هفته جاری)
+          </CardTitle>
+          <CardDescription>
+            آخرین وضعیت برنامه‌های PM ثبت شده برای تمام تکنسین‌ها در هفته جاری را مشاهده کنید.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+            <PMTable pms={currentWeekCompanyPMs} showTechnician={true} />
+        </CardContent>
+      </Card>
+
     </div>
   );
 }
