@@ -57,10 +57,10 @@ const prompt = ai.definePrompt({
 -   **suggestedPMs**: A list of PM objects. Each object must contain \`siteId\`, the pre-assigned \`technicianId\`, and a brief \`reasoning\` in Persian.
 
 **Input Data:**
--   Overdue Sites (High Priority): {{jsonStringify overdueSites}}
--   All Sites: {{jsonStringify allSites}}
--   All Technicians: {{jsonStringify technicians}}
--   Existing PMs This Week (Exclude these): {{jsonStringify existingPMsForWeek}}
+-   Overdue Sites (High Priority): {{overdueSites}}
+-   All Sites: {{allSites}}
+-   All Technicians: {{technicians}}
+-   Existing PMs This Week (Exclude these): {{existingPMsForWeek}}
 -   Target PM Count: {{targetSiteCount}}
 `,
 });
