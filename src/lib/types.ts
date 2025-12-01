@@ -83,6 +83,11 @@ export type TechRequestType = 'درخواست تجهیزات' | 'رسیدگی ب
 export type TechRequestPriority = 'فوری' | 'بالا' | 'متوسط' | 'پایین';
 export type TechRequestStatus = 'جدید' | 'در حال بررسی' | 'انجام شده' | 'رد شده';
 
+export interface EquipmentRequestItem {
+  equipmentId: string;
+  quantity: number;
+}
+
 export interface TechRequest {
     id: string;
     technicianId: string;
@@ -90,6 +95,8 @@ export interface TechRequest {
     type: TechRequestType;
     priority: TechRequestPriority;
     description: string;
+    items: EquipmentRequestItem[];
     status: TechRequestStatus;
     createdAt: string;
+    comments: { userId: string; text: string; timestamp: string }[];
 }

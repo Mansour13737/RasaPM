@@ -381,7 +381,11 @@ export const initialTechRequests: TechRequest[] = [
         description: 'برای سایت 201000 نیاز به 50 متر کابل شبکه CAT6 دارم.',
         priority: 'بالا',
         status: 'جدید',
-        createdAt: '2024-07-15T10:00:00Z'
+        createdAt: '2024-07-15T10:00:00Z',
+        items: [
+            { equipmentId: 'cable-cat6', quantity: 50 }
+        ],
+        comments: []
     },
     {
         id: 'req-2',
@@ -391,6 +395,10 @@ export const initialTechRequests: TechRequest[] = [
         description: 'پیشنهاد می‌کنم بخش مربوط به بررسی ولتاژ باتری‌ها نیز به تسک تست UPS اضافه شود.',
         priority: 'پایین',
         status: 'در حال بررسی',
-        createdAt: '2024-07-14T15:30:00Z'
+        createdAt: '2024-07-14T15:30:00Z',
+        items: [],
+        comments: [
+            { userId: 'user-pm', text: 'پیشنهاد خوبیه، در آپدیت بعدی تسک‌ها لحاظ می‌کنیم.', timestamp: '2024-07-15T11:00:00Z' }
+        ]
     }
 ];

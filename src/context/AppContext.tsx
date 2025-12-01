@@ -16,6 +16,7 @@ interface AppContextType {
   tasks: Task[];
   techRequests: TechRequest[];
   setTechRequests: React.Dispatch<React.SetStateAction<TechRequest[]>>;
+  updateTechRequest: (request: TechRequest) => void;
 }
 
 export const AppContext = createContext<AppContextType>({
@@ -30,6 +31,7 @@ export const AppContext = createContext<AppContextType>({
   tasks: [],
   techRequests: [],
   setTechRequests: () => {},
+  updateTechRequest: () => {},
 });
 
 export const AppProvider = ({ children }: { children: ReactNode }) => {
@@ -49,6 +51,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       prevPMs.map(pm => (pm.id === updatedPM.id ? updatedPM : pm))
     );
   };
+  
+  const updateTechRequest = (updatedRequest: TechRequest) => {
+    setTechRequests(prevRequests =>
+      prevRequests.map(req => (req.id === updatedRequest.id ? updatedRequest : req))
+    );
+  };
 
   return (
     <AppContext.Provider value={{ 
@@ -62,7 +70,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         changeRequests, 
         tasks,
         techRequests,
-        setTechRequests
+        setTechRequests,
+        updateTechRequest
     }}>
       {children}
     </AppContext.Provider>

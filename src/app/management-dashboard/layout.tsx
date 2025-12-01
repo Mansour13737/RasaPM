@@ -9,6 +9,7 @@ import {
   Settings,
   User as UserIcon,
   Users,
+  MessageSquare,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -66,6 +67,13 @@ const Navbar = ({
               >
                 <Users className="w-4 h-4" />
                 کاربران
+              </Link>
+              <Link
+                href="/management-dashboard/requests"
+                className="px-3 py-2 rounded-md text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground flex items-center gap-2"
+              >
+                <MessageSquare className="w-4 h-4" />
+                درخواست‌ها
               </Link>
             </div>
           </div>
