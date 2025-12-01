@@ -1,5 +1,6 @@
-import type { User, Site, WeeklyPM, ChangeRequest, Task, TechRequest } from './types';
+import type { User, Site, WeeklyPM, ChangeRequest, Task, TechRequest, PMStatus } from './types';
 
+// --- USER DATA ---
 export const initialUsers: User[] = [
   {
     id: 'user-admin',
@@ -28,89 +29,18 @@ export const initialUsers: User[] = [
     avatarUrl: 'https://i.pravatar.cc/150?u=user-rm',
     password: 'password123',
   },
-  {
-    id: 'user-tech-1',
-    name: 'فرهاد سلیمی',
-    username: 'farhad_s',
-    email: 'farhad.s@example.com',
-    role: 'Technician',
-    avatarUrl: 'https://i.pravatar.cc/150?u=user-tech-1',
-    password: 'password123',
-  },
-  {
-    id: 'user-tech-2',
-    name: 'فاضل دهدار',
-    username: 'fazel_d',
-    email: 'fazel.d@example.com',
-    role: 'Technician',
-    avatarUrl: 'https://i.pravatar.cc/150?u=user-tech-2',
-    password: 'password123',
-  },
-  {
-    id: 'user-tech-3',
-    name: 'محمد نوروزی پور',
-    username: 'mohammad_n',
-    email: 'mohammad.n@example.com',
-    role: 'Technician',
-    avatarUrl: 'https://i.pravatar.cc/150?u=user-tech-3',
-    password: 'password123',
-  },
-  {
-    id: 'user-tech-4',
-    name: 'علی حسن زاده',
-    username: 'ali_h',
-    email: 'ali.h@example.com',
-    role: 'Technician',
-    avatarUrl: 'https://i.pravatar.cc/150?u=user-tech-4',
-    password: 'password123',
-  },
-  {
-    id: 'user-tech-5',
-    name: 'محمد جعفر سرداری',
-    username: 'mohammad_j',
-    email: 'mohammad.j@example.com',
-    role: 'Technician',
-    avatarUrl: 'https://i.pravatar.cc/150?u=user-tech-5',
-    password: 'password123',
-  },
-  {
-    id: 'user-tech-6',
-    name: 'امین شهسواری',
-    username: 'amin_s',
-    email: 'amin.s@example.com',
-    role: 'Technician',
-    avatarUrl: 'https://i.pravatar.cc/150?u=user-tech-6',
-    password: 'password123',
-  },
-  {
-    id: 'user-tech-7',
-    name: 'توحید خزان',
-    username: 'tohid_k',
-    email: 'tohid.k@example.com',
-    role: 'Technician',
-    avatarUrl: 'https://i.pravatar.cc/150?u=user-tech-7',
-    password: 'password123',
-  },
-  {
-    id: 'user-tech-8',
-    name: 'ابراهیمی',
-    username: 'ebrahimi',
-    email: 'ebrahimi@example.com',
-    role: 'Technician',
-    avatarUrl: 'https://i.pravatar.cc/150?u=user-tech-8',
-    password: 'password123',
-  },
-  {
-    id: 'user-tech-9',
-    name: 'محمد نبی محمدی',
-    username: 'mohammad_m',
-    email: 'mohammad.m@example.com',
-    role: 'Technician',
-    avatarUrl: 'https://i.pravatar.cc/150?u=user-tech-9',
-    password: 'password123',
-  },
+  { id: 'user-tech-1', name: 'فرهاد سلیمی', username: 'farhad_s', email: 'farhad.s@example.com', role: 'Technician', avatarUrl: 'https://i.pravatar.cc/150?u=user-tech-1', password: 'password123' },
+  { id: 'user-tech-2', name: 'فاضل دهدار', username: 'fazel_d', email: 'fazel.d@example.com', role: 'Technician', avatarUrl: 'https://i.pravatar.cc/150?u=user-tech-2', password: 'password123' },
+  { id: 'user-tech-3', name: 'محمد نوروزی پور', username: 'mohammad_n', email: 'mohammad.n@example.com', role: 'Technician', avatarUrl: 'https://i.pravatar.cc/150?u=user-tech-3', password: 'password123' },
+  { id: 'user-tech-4', name: 'علی حسن زاده', username: 'ali_h', email: 'ali.h@example.com', role: 'Technician', avatarUrl: 'https://i.pravatar.cc/150?u=user-tech-4', password: 'password123' },
+  { id: 'user-tech-5', name: 'محمد جعفر سرداری', username: 'mohammad_j', email: 'mohammad.j@example.com', role: 'Technician', avatarUrl: 'https://i.pravatar.cc/150?u=user-tech-5', password: 'password123' },
+  { id: 'user-tech-6', name: 'امین شهسواری', username: 'amin_s', email: 'amin.s@example.com', role: 'Technician', avatarUrl: 'https://i.pravatar.cc/150?u=user-tech-6', password: 'password123' },
+  { id: 'user-tech-7', name: 'توحید خزان', username: 'tohid_k', email: 'tohid.k@example.com', role: 'Technician', avatarUrl: 'https://i.pravatar.cc/150?u=user-tech-7', password: 'password123' },
+  { id: 'user-tech-8', name: 'ابراهیمی', username: 'ebrahimi', email: 'ebrahimi@example.com', role: 'Technician', avatarUrl: 'https://i.pravatar.cc/150?u=user-tech-8', password: 'password123' },
+  { id: 'user-tech-9', name: 'محمد نبی محمدی', username: 'mohammad_m', email: 'mohammad.m@example.com', role: 'Technician', avatarUrl: 'https://i.pravatar.cc/150?u=user-tech-9', password: 'password123' },
 ];
 
+// --- SITE DATA ---
 export const initialSites: Site[] = [
     { id: '201000', name: '201000', location: 'بابل, مازندران', imageUrl: 'https://picsum.photos/seed/babol/400/300', imageHint: 'telecom tower', technicianId: 'user-tech-1' },
     { id: '201001', name: '201001', location: 'ساری, مازندران', imageUrl: 'https://picsum.photos/seed/sari/400/300', imageHint: 'telecom tower', technicianId: 'user-tech-1' },
@@ -131,14 +61,14 @@ export const initialSites: Site[] = [
     { id: '201090', name: '201090', location: 'بابلسر, مازندران', imageUrl: 'https://picsum.photos/seed/babolsar/400/300', imageHint: 'telecom tower', technicianId: 'user-tech-2' },
     { id: '201091', name: '201091', location: 'بابلسر, مازندران', imageUrl: 'https://picsum.photos/seed/babolsar/400/300', imageHint: 'telecom tower', technicianId: 'user-tech-2' },
     { id: '201092', name: '201092', location: 'بابلسر, مازندران', imageUrl: 'https://picsum.photos/seed/babolsar/400/300', imageHint: 'telecom tower', technicianId: 'user-tech-2' },
-    { id: '201100', name: '201100', location: 'Chaluse, مازندران', imageUrl: 'https://picsum.photos/seed/chalus/400/300', imageHint: 'telecom tower', technicianId: 'user-tech-2' },
-    { id: '201120', name: '201120', location: 'Fereydun Kenar, مازندران', imageUrl: 'https://picsum.photos/seed/fereydunkenar/400/300', imageHint: 'telecom tower', technicianId: 'user-tech-2' },
-    { id: '201122', name: '201122', location: 'Ramsar, مازندران', imageUrl: 'https://picsum.photos/seed/ramsar/400/300', imageHint: 'telecom tower', technicianId: 'user-tech-2' },
-    { id: '201150', name: '201150', location: 'Nur, مازندران', imageUrl: 'https://picsum.photos/seed/nur/400/300', imageHint: 'telecom tower', technicianId: 'user-tech-2' },
-    { id: '201161', name: '201161', location: 'Nowshahr, مازندران', imageUrl: 'https://picsum.photos/seed/nowshahr/400/300', imageHint: 'telecom tower', technicianId: 'user-tech-2' },
-    { id: '201166', name: '201166', location: 'Nowshahr, مازندران', imageUrl: 'https://picsum.photos/seed/nowshahr/400/300', imageHint: 'telecom tower', technicianId: 'user-tech-2' },
-    { id: '201190', name: '201190', location: 'Ramsar, مازندران', imageUrl: 'https://picsum.photos/seed/ramsar/400/300', imageHint: 'telecom tower', technicianId: 'user-tech-2' },
-    { id: '201221', name: '201221', location: 'Tonekabon, مازندران', imageUrl: 'https://picsum.photos/seed/tonekabon/400/300', imageHint: 'telecom tower', technicianId: 'user-tech-2' },
+    { id: '201100', name: '201100', location: 'چالوس, مازندران', imageUrl: 'https://picsum.photos/seed/chalus/400/300', imageHint: 'telecom tower', technicianId: 'user-tech-2' },
+    { id: '201120', name: '201120', location: 'فریدونکنار, مازندران', imageUrl: 'https://picsum.photos/seed/fereydunkenar/400/300', imageHint: 'telecom tower', technicianId: 'user-tech-2' },
+    { id: '201122', name: '201122', location: 'رامسر, مازندران', imageUrl: 'https://picsum.photos/seed/ramsar/400/300', imageHint: 'telecom tower', technicianId: 'user-tech-2' },
+    { id: '201150', name: '201150', location: 'نور, مازندران', imageUrl: 'https://picsum.photos/seed/nur/400/300', imageHint: 'telecom tower', technicianId: 'user-tech-2' },
+    { id: '201161', name: '201161', location: 'نوشهر, مازندران', imageUrl: 'https://picsum.photos/seed/nowshahr/400/300', imageHint: 'telecom tower', technicianId: 'user-tech-2' },
+    { id: '201166', name: '201166', location: 'نوشهر, مازندران', imageUrl: 'https://picsum.photos/seed/nowshahr/400/300', imageHint: 'telecom tower', technicianId: 'user-tech-2' },
+    { id: '201190', name: '201190', location: 'رامسر, مازندران', imageUrl: 'https://picsum.photos/seed/ramsar/400/300', imageHint: 'telecom tower', technicianId: 'user-tech-2' },
+    { id: '201221', name: '201221', location: 'تنکابن, مازندران', imageUrl: 'https://picsum.photos/seed/tonekabon/400/300', imageHint: 'telecom tower', technicianId: 'user-tech-2' },
     { id: '261000', name: '261000', location: 'گرگان, گلستان', imageUrl: 'https://picsum.photos/seed/gorgan/400/300', imageHint: 'telecom tower', technicianId: 'user-tech-3' },
     { id: '261001', name: '261001', location: 'گرگان, گلستان', imageUrl: 'https://picsum.photos/seed/gorgan/400/300', imageHint: 'telecom tower', technicianId: 'user-tech-3' },
     { id: '261002', name: '261002', location: 'گرگان, گلستان', imageUrl: 'https://picsum.photos/seed/gorgan/400/300', imageHint: 'telecom tower', technicianId: 'user-tech-3' },
@@ -258,7 +188,7 @@ export const initialSites: Site[] = [
     { id: '381106', name: '381106', location: 'بندر انزلی, گیلان', imageUrl: 'https://picsum.photos/seed/anzali/400/300', imageHint: 'telecom tower', technicianId: 'user-tech-9' },
 ];
 
-
+// --- TASK DATA ---
 export const initialTasks: Task[] = [
   {
     id: 'task-1',
@@ -292,52 +222,77 @@ export const initialTasks: Task[] = [
 ];
 
 
-export const initialWeeklyPMs: WeeklyPM[] = [
-  {
-    id: 'pm-1',
-    weekIdentifier: '2024-W28',
-    siteId: '201000',
-    assignedTechnicianId: 'user-tech-1',
-    status: 'In Progress',
-    crNumber: 'CR-1024',
-    tasks: [
-      { taskId: 'task-1', isCompleted: true, notes: 'گرد و غبار جزئی پاک شد.', photos: [], location: null, checklist: {'f-1-1': false, 'f-1-2': true}, customFields: {} },
-      { taskId: 'task-2', isCompleted: false, notes: '', photos: [], location: null, checklist: {}, customFields: {} },
-    ],
-    comments: [
-        { userId: 'user-pm', text: 'لطفا بررسی دمای رک فراموش نشود.', timestamp: '2024-07-10T10:00:00Z' }
-    ]
-  },
-  {
-    id: 'pm-2',
-    weekIdentifier: '2024-W28',
-    siteId: '201090',
-    assignedTechnicianId: 'user-tech-2',
-    status: 'Pending',
-    crNumber: 'CR-1025',
-    tasks: [
-      { taskId: 'task-1', isCompleted: false, notes: '', photos: [], location: null, checklist: {}, customFields: {} },
-      { taskId: 'task-3', isCompleted: false, notes: '', photos: [], location: null, checklist: {}, customFields: {} },
-    ],
-     comments: []
-  },
-  {
-    id: 'pm-3',
-    weekIdentifier: '2024-W27',
-    siteId: '261000',
-    assignedTechnicianId: 'user-tech-3',
-    status: 'Completed',
-    crNumber: 'CR-1020',
-    tasks: [
-      { taskId: 'task-1', isCompleted: true, notes: 'همه موارد بررسی شد.', photos: [], location: null, checklist: {}, customFields: {} },
-      { taskId: 'task-2', isCompleted: true, notes: 'دما ۲۲ درجه سانتی‌گراد بود.', photos: [], location: null, checklist: {}, customFields: {'f-2-1': 22} },
-    ],
-    comments: [
-         { userId: 'user-tech-3', text: 'PM با موفقیت انجام شد.', timestamp: '2024-07-05T14:30:00Z' },
-         { userId: 'user-admin', text: 'عالی بود، ممنون.', timestamp: '2024-07-06T09:00:00Z' }
-    ]
-  },
-];
+// --- DYNAMICALLY GENERATED PMs for a whole year ---
+
+const generateAllYearPMs = (): WeeklyPM[] => {
+    const allPMs: WeeklyPM[] = [];
+    const technicians = initialUsers.filter(u => u.role === 'Technician');
+    const sites = [...initialSites];
+    const statuses: PMStatus[] = ['Pending', 'In Progress', 'Completed', 'Cancelled'];
+    
+    // Shuffle sites for random distribution
+    sites.sort(() => Math.random() - 0.5);
+
+    let siteIndex = 0;
+    let pmIdCounter = 1;
+
+    for (let week = 1; week <= 52; week++) {
+        const pmsThisWeek = Math.floor(Math.random() * 4) + 8; // Randomly 8-11 PMs per week
+        for (let i = 0; i < pmsThisWeek; i++) {
+            
+            if (siteIndex >= sites.length) {
+                siteIndex = 0; // Loop back if we've run out of sites
+                sites.sort(() => Math.random() - 0.5); // reshuffle
+            }
+            
+            const site = sites[siteIndex];
+            const assignedTechnician = technicians.find(t => t.id === site.technicianId) || technicians[Math.floor(Math.random() * technicians.length)];
+            const weekIdentifier = `2024-W${week.toString().padStart(2, '0')}`;
+            
+            // Randomly pick a status, with 'Pending' being more likely for future weeks
+            let status: PMStatus;
+            const currentWeek = 28; 
+            if (week < currentWeek - 2) {
+                status = 'Completed';
+            } else if (week < currentWeek) {
+                status = ['Completed', 'In Progress', 'Cancelled'][Math.floor(Math.random() * 3)] as PMStatus;
+            } else {
+                status = ['Pending', 'Pending', 'In Progress'][Math.floor(Math.random() * 3)] as PMStatus;
+            }
+
+            const pm: WeeklyPM = {
+                id: `pm-${pmIdCounter++}`,
+                weekIdentifier,
+                siteId: site.id,
+                assignedTechnicianId: assignedTechnician.id,
+                status: status,
+                crNumber: `CR-2024-${Math.floor(Math.random() * 500) + 1000}`,
+                tasks: initialTasks.map(t => {
+                    const isCompleted = status === 'Completed' ? true : (status === 'In Progress' ? Math.random() > 0.5 : false);
+                    return {
+                        taskId: t.id,
+                        isCompleted: isCompleted,
+                        notes: isCompleted ? 'بررسی انجام شد.' : '',
+                        photos: [],
+                        location: null,
+                        checklist: {},
+                        customFields: {},
+                    };
+                }),
+                comments: [],
+            };
+
+            allPMs.push(pm);
+            siteIndex++;
+        }
+    }
+    return allPMs;
+}
+
+export const initialWeeklyPMs: WeeklyPM[] = generateAllYearPMs();
+
+
+// --- OTHER MOCK DATA ---
 
 export const initialChangeRequests: ChangeRequest[] = [
   {

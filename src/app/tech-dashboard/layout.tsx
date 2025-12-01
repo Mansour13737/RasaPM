@@ -9,6 +9,7 @@ import {
   Settings,
   User as UserIcon,
   MessageSquarePlus,
+  Calendar,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -49,6 +50,13 @@ const Navbar = ({
               >
                 <Home className="w-4 h-4" />
                 داشبورد
+              </Link>
+              <Link
+                href="/tech-dashboard/calendar"
+                className="px-3 py-2 rounded-md text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground flex items-center gap-2"
+              >
+                <Calendar className="w-4 h-4" />
+                تقویم PM
               </Link>
               <Link
                 href="/tech-dashboard/sites"
