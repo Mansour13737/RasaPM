@@ -4,19 +4,17 @@ import React, { useContext, useMemo } from 'react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle } from "lucide-react";
 import { AppContext } from "@/context/AppContext";
-import { getISOWeek } from 'date-fns';
+import { getISOWeek, getYear } from 'date-fns';
 import Link from 'next/link';
+import type { Site, WeeklyPM } from '@/lib/types';
 
-export function OverduePMsAlert() {
-  const { sites, weeklyPMs } = useContext(AppContext);
 
-  const overdueSites = useMemo(() => {
+export function getOverdueSites(sites: Site[], weeklyPMs: WeeklyPM[]): Site[] {
     const currentWeek = getISOWeek(new Date());
     const isFirstHalf = currentWeek <= 26;
     const startWeek = isFirstHalf ? 1 : 27;
     const endWeek = isFirstHalf ? 26 : 52;
 
-    // Get all PMs completed in the current half of the year
     const completedPMsInCurrentHalf = weeklyPMs.filter(pm => {
       const pmWeek = parseInt(pm.weekIdentifier.split('-W')[1]);
       return pm.status === 'Completed' && pmWeek >= startWeek && pmWeek <= endWeek;
@@ -24,12 +22,14 @@ export function OverduePMsAlert() {
 
     const completedSiteIds = new Set(completedPMsInCurrentHalf.map(pm => pm.siteId));
 
-    // Find sites that do NOT have a completed PM in the current half
-    const overdue = sites.filter(site => !completedSiteIds.has(site.id));
-    
-    return overdue;
+    return sites.filter(site => !completedSiteIds.has(site.id));
+}
 
-  }, [sites, weeklyPMs]);
+
+export function OverduePMsAlert() {
+  const { sites, weeklyPMs } = useContext(AppContext);
+
+  const overdueSites = useMemo(() => getOverdueSites(sites, weeklyPMs), [sites, weeklyPMs]);
 
 
   if (overdueSites.length === 0) {

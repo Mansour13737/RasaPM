@@ -62,6 +62,7 @@ import { AISummary } from '@/components/ai-summary';
 import { AppContext } from '@/context/AppContext';
 import { useToast } from '@/hooks/use-toast';
 import { OverduePMsAlert } from '@/components/overdue-pms-alert';
+import { AIPlanner } from '@/components/ai-planner';
 
 const ITEMS_PER_PAGE = 10;
 
@@ -297,7 +298,9 @@ export default function ManagementDashboardPage() {
   return (
     <div className="space-y-6">
       <OverduePMsAlert />
-      <AISummary pms={weeklyPMs} />
+      <AISummary />
+      <AIPlanner />
+
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>

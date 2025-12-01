@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import React, { useState, useMemo, useContext, useEffect } from 'react';
+import * as XLSX from 'xlsx';
 import {
   Card,
   CardContent,
@@ -27,10 +28,9 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, Download } from 'lucide-react';
 import type { User, PMStatus, WeeklyPM, Site } from '@/lib/types';
 import { AppContext } from '@/context/AppContext';
-import { getWeek } from 'date-fns';
 
 const ITEMS_PER_PAGE = 15;
 
@@ -100,15 +100,40 @@ export default function PMCalendarPage() {
     setCurrentPage(1);
   }, [searchTerm, selectedCity, selectedTechnician, selectedStatus, selectedWeek]);
 
+  const handleExport = () => {
+    const dataToExport = filteredPMs.map(pm => {
+      const site = sites.find(s => s.id === pm.siteId);
+      const technician = users.find(u => u.id === pm.assignedTechnicianId);
+      return {
+        'هفته': pm.weekIdentifier,
+        'نام سایت': site?.name || 'N/A',
+        'شهر': site?.location.split(', ')[1] || 'N/A',
+        'تکنسین': technician?.name || 'نامشخص',
+        'وضعیت': pm.status,
+        'شماره CR': pm.crNumber || '---',
+      }
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'گزارش PM');
+    XLSX.writeFile(workbook, `RasaPM_Report_${new Date().toISOString().split('T')[0]}.xlsx`);
+  }
 
   return (
     <div className="space-y-6">
        <Card>
-        <CardHeader>
-          <CardTitle>تقویم و برنامه سالانه PM</CardTitle>
-          <CardDescription>
-            برنامه‌های PM ثبت شده در طول سال را جستجو، فیلتر و مدیریت کنید.
-          </CardDescription>
+        <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between">
+          <div>
+            <CardTitle>تقویم و برنامه سالانه PM</CardTitle>
+            <CardDescription>
+              برنامه‌های PM ثبت شده در طول سال را جستجو، فیلتر و مدیریت کنید.
+            </CardDescription>
+          </div>
+          <Button onClick={handleExport}>
+            <Download className="ml-2 h-4 w-4" />
+            خروجی اکسل
+          </Button>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
