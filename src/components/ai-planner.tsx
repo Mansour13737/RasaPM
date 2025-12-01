@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useMemo } from 'react';
 import {
   Card,
   CardContent,
@@ -32,7 +32,7 @@ import { OverduePMsAlert, getOverdueSites } from './overdue-pms-alert';
 const TARGET_PMS_PER_WEEK = 10;
 
 export function AIPlanner() {
-  const { sites, users, weeklyPMs, addWeeklyPM } = useContext(AppContext);
+  const { sites, users, weeklyPMs, addWeeklyPM, tasks } = useContext(AppContext);
   const [isLoading, setIsLoading] = useState(false);
   const [showSheet, setShowSheet] = useState(false);
   const [plan, setPlan] = useState<PlanWeekOutput | null>(null);
@@ -84,7 +84,15 @@ export function AIPlanner() {
             siteId: suggestedPm.siteId,
             assignedTechnicianId: suggestedPm.technicianId,
             status: 'Pending',
-            tasks: [],
+            tasks: tasks.map(t => ({
+              taskId: t.id,
+              isCompleted: false,
+              notes: '',
+              photos: [],
+              location: null,
+              checklist: {},
+              customFields: {}
+            })),
             crNumber: `AI-${currentWeekIdentifier.split('-W')[1]}`,
         };
         addWeeklyPM(newPM);
