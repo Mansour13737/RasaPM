@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { sites, users } from '@/lib/data'; // Use mock data
 import {
   Card,
   CardContent,
@@ -12,10 +11,12 @@ import {
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import type { Site, User } from '@/lib/types';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useContext } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { AppContext } from '@/context/AppContext';
 
 export default function SitesPage() {
+  const { sites, users } = useContext(AppContext);
   const [loading, setLoading] = useState(true);
 
   // Simulate loading

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useContext } from 'react';
 import {
   Card,
   CardContent,
@@ -38,7 +38,6 @@ import {
   Calendar as CalendarIcon,
   FilePlus2,
 } from 'lucide-react';
-import { users, sites, weeklyPMs } from '@/lib/data'; // Using mock data
 import type { User, PMStatus, WeeklyPM, Site } from '@/lib/types';
 import {
   Popover,
@@ -47,7 +46,7 @@ import {
 } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
-import { format, startOfWeek, endOfWeek, isWithinInterval } from 'date-fns';
+import { format, startOfWeek, endOfWeek, isWithinInterval, getISOWeek, getYear } from 'date-fns';
 import {
   Sheet,
   SheetContent,
@@ -59,15 +58,12 @@ import {
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { AISummary } from '@/components/ai-summary';
-
-const allPMs = weeklyPMs;
-const allUsers = users;
-const allSites = sites;
+import { AppContext } from '@/context/AppContext';
+import { useToast } from '@/hooks/use-toast';
 
 // Helper function to get the start date of a week from a "YYYY-WNN" string
 function getWeekDate(weekIdentifier: string): Date {
   const [year, week] = weekIdentifier.split('-W').map(Number);
-  // This is a simplified logic, for robust implementation, use a date library
   const d = new Date(year, 0, 1 + (week - 1) * 7);
   const day = d.getDay();
   const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Adjust to Monday
@@ -89,8 +85,70 @@ function getStatusVariant(status: PMStatus) {
 }
 
 const NewPMSheet = () => {
-  const [startDate, setStartDate] = React.useState<Date>();
-  const [endDate, setEndDate] = React.useState<Date>();
+  const { sites, addWeeklyPM, tasks } = useContext(AppContext);
+  const { toast } = useToast();
+  const [selectedSiteId, setSelectedSiteId] = React.useState<string>('');
+  const [crNumber, setCrNumber] = React.useState('');
+  const [comment, setComment] = React.useState('');
+  const [weekDate, setWeekDate] = React.useState<Date>();
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedSiteId || !weekDate) {
+      toast({
+        variant: 'destructive',
+        title: 'خطا',
+        description: 'لطفاً سایت و تاریخ هفته را انتخاب کنید.',
+      });
+      return;
+    }
+
+    const weekIdentifier = `${getYear(weekDate)}-W${getISOWeek(weekDate)}`;
+    
+    // Find the technician assigned to the site
+    const site = sites.find(s => s.id === selectedSiteId);
+    if (!site) {
+         toast({
+            variant: 'destructive',
+            title: 'خطا',
+            description: 'سایت انتخاب شده یافت نشد.',
+         });
+         return;
+    }
+
+    const newPM: WeeklyPM = {
+      id: `pm-${Date.now()}`,
+      weekIdentifier,
+      siteId: selectedSiteId,
+      assignedTechnicianId: site.technicianId,
+      status: 'Pending',
+      crNumber: crNumber,
+      tasks: tasks.map(t => ({ // Assign all static/dynamic tasks by default
+          taskId: t.id,
+          isCompleted: false,
+          notes: '',
+          photos: [],
+          location: null,
+          checklist: {},
+          customFields: {}
+      })),
+      comments: comment ? [{ userId: 'user-pm', text: comment, timestamp: new Date().toISOString() }] : [],
+    };
+    
+    addWeeklyPM(newPM);
+
+    toast({
+      title: 'موفقیت',
+      description: `پلن PM برای سایت ${site.name} با موفقیت ایجاد و برای تکنسین ارسال شد.`,
+    });
+
+    // Reset form
+    setSelectedSiteId('');
+    setCrNumber('');
+    setComment('');
+    setWeekDate(undefined);
+  };
+
 
   return (
     <Sheet>
@@ -107,89 +165,62 @@ const NewPMSheet = () => {
             اطلاعات پلن PM را وارد کنید تا برای تکنسین مربوطه ارسال شود.
           </SheetDescription>
         </SheetHeader>
-        <form className="grid gap-4 py-4">
-          <div className="grid gap-2">
-            <Label htmlFor="pm-cr-number">شماره CR</Label>
-            <Input id="pm-cr-number" placeholder="شماره CR مرتبط را وارد کنید" />
-          </div>
+        <form onSubmit={handleSubmit} className="grid gap-4 py-4">
           <div className="grid gap-2">
             <Label htmlFor="pm-siteId">کد سایت</Label>
-            <Select>
+            <Select value={selectedSiteId} onValueChange={setSelectedSiteId}>
               <SelectTrigger>
                 <SelectValue placeholder="کد سایت را انتخاب کنید" />
               </SelectTrigger>
               <SelectContent>
-                {allSites.map((s) => (
+                {sites.map((s) => (
                   <SelectItem key={s.id} value={s.id}>
-                    {s.name} ({s.id})
+                    {s.name} ({s.location})
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
           <div className="grid gap-2">
-            <Label>تاریخ شروع</Label>
+             <Label>هفته</Label>
             <Popover>
               <PopoverTrigger asChild>
                 <Button
                   variant={'outline'}
                   className={cn(
                     'w-full justify-start text-left font-normal',
-                    !startDate && 'text-muted-foreground'
+                    !weekDate && 'text-muted-foreground'
                   )}
                 >
                   <CalendarIcon className="ml-2 h-4 w-4" />
-                  {startDate ? (
-                    format(startDate, 'PPP')
+                  {weekDate ? (
+                    `هفته ${getISOWeek(weekDate)} سال ${getYear(weekDate)}`
                   ) : (
-                    <span>تاریخ را انتخاب کنید</span>
+                    <span>تاریخ هفته را انتخاب کنید</span>
                   )}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0">
                 <Calendar
                   mode="single"
-                  selected={startDate}
-                  onSelect={setStartDate}
+                  selected={weekDate}
+                  onSelect={setWeekDate}
                   initialFocus
                 />
               </PopoverContent>
             </Popover>
           </div>
-          <div className="grid gap-2">
-            <Label>تاریخ پایان</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant={'outline'}
-                  className={cn(
-                    'w-full justify-start text-left font-normal',
-                    !endDate && 'text-muted-foreground'
-                  )}
-                >
-                  <CalendarIcon className="ml-2 h-4 w-4" />
-                  {endDate ? (
-                    format(endDate, 'PPP')
-                  ) : (
-                    <span>تاریخ را انتخاب کنید</span>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
-                <Calendar
-                  mode="single"
-                  selected={endDate}
-                  onSelect={setEndDate}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
+           <div className="grid gap-2">
+            <Label htmlFor="pm-cr-number">شماره CR (اختیاری)</Label>
+            <Input id="pm-cr-number" placeholder="شماره CR مرتبط را وارد کنید" value={crNumber} onChange={e => setCrNumber(e.target.value)} />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="pm-comment">کامنت برای تکنسین</Label>
+            <Label htmlFor="pm-comment">کامنت برای تکنسین (اختیاری)</Label>
             <Textarea
               id="pm-comment"
               placeholder="پیام خود را برای تکنسین بنویسید..."
+              value={comment}
+              onChange={e => setComment(e.target.value)}
             />
           </div>
           <Button type="submit" className="mt-4">
@@ -202,6 +233,7 @@ const NewPMSheet = () => {
 };
 
 export default function ManagementDashboardPage() {
+  const { users, sites, weeklyPMs } = useContext(AppContext);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCity, setSelectedCity] = useState('all');
@@ -209,17 +241,17 @@ export default function ManagementDashboardPage() {
   const [selectedDate, setSelectedDate] = React.useState<Date>();
   
   const allTechnicians = useMemo(
-    () => allUsers.filter((u) => u.role === 'Technician'),
-    []
+    () => users.filter((u) => u.role === 'Technician'),
+    [users]
   );
   const allCities = useMemo(
-    () => [...new Set(allSites.map((s) => s.location.split(', ')[1]))],
-    []
+    () => [...new Set(sites.map((s) => s.location.split(', ')[1]))],
+    [sites]
   );
 
   const filteredPMs = useMemo(() => {
-    return allPMs.filter((pm) => {
-      const site = allSites.find((s) => s.id === pm.siteId);
+    return weeklyPMs.filter((pm) => {
+      const site = sites.find((s) => s.id === pm.siteId);
       if (!site) return false;
 
       const siteCity = site.location.split(', ')[1];
@@ -250,7 +282,7 @@ export default function ManagementDashboardPage() {
 
       return matchesSearch && matchesCity && matchesFlm && matchesDate;
     });
-  }, [searchTerm, selectedCity, selectedFlm, selectedDate]);
+  }, [searchTerm, selectedCity, selectedFlm, selectedDate, weeklyPMs, sites]);
 
   const pmByStatus = useMemo(() => {
     return filteredPMs.reduce(
@@ -268,25 +300,25 @@ export default function ManagementDashboardPage() {
   const availableTechnicians = useMemo(() => {
     if (selectedCity === 'all') return allTechnicians;
     const techIdsInCity = new Set(
-      allSites
+      sites
         .filter((s) => s.location.split(', ')[1] === selectedCity)
         .map((s) => s.technicianId)
     );
     return allTechnicians.filter((t) => techIdsInCity.has(t.id));
-  }, [selectedCity, allTechnicians]);
+  }, [selectedCity, allTechnicians, sites]);
 
   const availableCities = useMemo(() => {
     if (selectedFlm === 'all') return allCities;
     const citiesForTech = new Set(
-      allSites
+      sites
         .filter((s) => s.technicianId === selectedFlm)
         .map((s) => s.location.split(', ')[1])
     );
     return allCities.filter((c) => citiesForTech.has(c));
-  }, [selectedFlm, allCities]);
+  }, [selectedFlm, allCities, sites]);
 
   const pmStats = useMemo(() => {
-    return allPMs.reduce(
+    return weeklyPMs.reduce(
       (acc, pm) => {
         if (pm.status === 'Completed') acc.completed += 1;
         else if (pm.status === 'In Progress') acc.inProgress += 1;
@@ -296,7 +328,7 @@ export default function ManagementDashboardPage() {
       },
       { completed: 0, inProgress: 0, pending: 0, cancelled: 0 }
     );
-  }, []);
+  }, [weeklyPMs]);
 
   const handleCityChange = (value: string) => {
     setSelectedCity(value);
@@ -326,8 +358,7 @@ export default function ManagementDashboardPage() {
         <TableRow>
           <TableHead>کد سایت</TableHead>
           <TableHead>شهر</TableHead>
-          <TableHead>تاریخ شروع CR</TableHead>
-          <TableHead>تاریخ پایان CR</TableHead>
+          <TableHead>هفته</TableHead>
           <TableHead>شماره CR</TableHead>
           <TableHead>وضعیت</TableHead>
           <TableHead>عملیات</TableHead>
@@ -336,17 +367,14 @@ export default function ManagementDashboardPage() {
       <TableBody>
         {pms.length > 0 ? (
           pms.map((pm) => {
-            const site = allSites.find((s) => s.id === pm.siteId);
-            const startDate = getWeekDate(pm.weekIdentifier);
-            const endDate = endOfWeek(startDate, { weekStartsOn: 1 });
+            const site = sites.find((s) => s.id === pm.siteId);
             return (
               <TableRow key={pm.id}>
                 <TableCell>{site?.name || 'N/A'}</TableCell>
                 <TableCell>
                   {site?.location.split(', ')[1] || 'N/A'}
                 </TableCell>
-                <TableCell>{format(startDate, 'yyyy/MM/dd')}</TableCell>
-                <TableCell>{format(endDate, 'yyyy/MM/dd')}</TableCell>
+                <TableCell>{pm.weekIdentifier}</TableCell>
                 <TableCell>{pm.crNumber || 'N/A'}</TableCell>
                 <TableCell>
                   <Badge variant={getStatusVariant(pm.status)}>
@@ -376,7 +404,7 @@ export default function ManagementDashboardPage() {
 
   return (
     <div className="space-y-6">
-      <AISummary pms={allPMs} />
+      <AISummary pms={weeklyPMs} />
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import {
   Table,
   TableBody,
@@ -39,7 +39,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { PlusCircle, Edit, Trash2 } from 'lucide-react';
-import { users as initialUsers } from '@/lib/data'; // Using mock data
 import type { User, UserRole } from '@/lib/types';
 import {
   Select,
@@ -49,6 +48,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
+import { AppContext } from '@/context/AppContext';
 
 const UserForm = ({
   user,
@@ -108,7 +108,7 @@ const UserForm = ({
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="نام کامل کاربر"
-          disabled={!canEditFields}
+          disabled={!canEditFields && !isEditingSelf}
         />
       </div>
       <div>
@@ -129,7 +129,7 @@ const UserForm = ({
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="user@example.com"
-          disabled={!canEditFields}
+          disabled={!canEditFields && !isEditingSelf}
         />
       </div>
        {!user && (
@@ -179,7 +179,7 @@ const UserForm = ({
 };
 
 export default function UsersPage() {
-  const [users, setUsers] = useState<User[]>(initialUsers);
+  const { users, setUsers } = useContext(AppContext);
   const [loading, setLoading] = useState(true);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
@@ -261,6 +261,7 @@ export default function UsersPage() {
       if (!currentUser) return false;
       if (currentUser.role === 'Admin') return true;
       if (currentUser.role === 'PM' && user.role === 'Technician') return true;
+      if (user.id === currentUser.id) return true; // Users can edit their own (limited) info
       return false;
   }
 
@@ -274,8 +275,8 @@ export default function UsersPage() {
               کاربران سیستم را اضافه، ویرایش یا حذف کنید.
             </CardDescription>
           </div>
-          {currentUser?.role === 'Admin' && (
-            <Button onClick={openAddSheet}>
+          {(currentUser?.role === 'Admin' || currentUser?.role === 'PM') && (
+            <Button onClick={openAddSheet} disabled={currentUser?.role === 'PM'}>
                 <PlusCircle className="ml-2 h-4 w-4" />
                 افزودن کاربر
             </Button>
@@ -309,7 +310,7 @@ export default function UsersPage() {
                       variant="outline"
                       size="sm"
                       onClick={() => openEditSheet(user)}
-                      disabled={!canPerformAction(user) && user.id !== currentUser?.id}
+                      disabled={!canPerformAction(user)}
                     >
                       <Edit className="h-4 w-4" />
                     </Button>
@@ -359,7 +360,7 @@ export default function UsersPage() {
         <SheetContent>
           <SheetHeader>
             <SheetTitle>
-              {editingUser ? 'ویرایش کاربر' : 'افزودن کاربر جدید'}
+              {editingUser ? `ویرایش کاربر: ${editingUser.name}` : 'افزودن کاربر جدید'}
             </SheetTitle>
           </SheetHeader>
           <div className="py-4">

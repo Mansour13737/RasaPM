@@ -1,7 +1,6 @@
 'use client';
 
-import { weeklyPMs, sites, users, tasks as allTasks } from '@/lib/data';
-import { notFound, useRouter } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import {
   Card,
   CardContent,
@@ -25,8 +24,9 @@ import { Camera, MapPin, CheckCircle2, Circle, Send } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import type { TaskField, User, WeeklyPM, Site, TaskResult, Task } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useContext } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { AppContext } from '@/context/AppContext';
 
 function TaskFieldRenderer({ field }: { field: TaskField }) {
   const id = `task-field-${field.id}`;
@@ -34,7 +34,7 @@ function TaskFieldRenderer({ field }: { field: TaskField }) {
     case 'checkbox':
       return (
         <div className="flex items-center space-x-2 space-x-reverse">
-          <Checkbox id={id} />
+          <Checkbox id={id} disabled />
           <Label htmlFor={id} className="font-normal">
             {field.label}
           </Label>
@@ -44,21 +44,21 @@ function TaskFieldRenderer({ field }: { field: TaskField }) {
       return (
         <div>
           <Label htmlFor={id}>{field.label}</Label>
-          <Input id={id} type="text" />
+          <Input id={id} type="text" readOnly />
         </div>
       );
     case 'number':
       return (
         <div>
           <Label htmlFor={id}>{field.label}</Label>
-          <Input id={id} type="number" />
+          <Input id={id} type="number" readOnly />
         </div>
       );
     case 'photo':
       return (
         <div>
           <Label>{field.label}</Label>
-          <Button variant="outline" className="w-full">
+          <Button variant="outline" className="w-full" disabled>
             <Camera className="ml-2 h-4 w-4" />
             آپلود عکس
           </Button>
@@ -71,6 +71,7 @@ function TaskFieldRenderer({ field }: { field: TaskField }) {
 
 export default function PMDetailPage({ params }: { params: { id: string } }) {
   const { toast } = useToast();
+  const { users, sites, weeklyPMs, tasks, updateWeeklyPM } = useContext(AppContext);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
 
   useEffect(() => {
@@ -80,33 +81,19 @@ export default function PMDetailPage({ params }: { params: { id: string } }) {
       }
   }, []);
 
-  const pm = useMemo(() => weeklyPMs.find(p => p.id === params.id), [params.id]);
-  const site = useMemo(() => sites.find(s => s.id === pm?.siteId), [pm]);
-  const technician = useMemo(() => users.find(u => u.id === pm?.assignedTechnicianId), [pm]);
+  const pm = useMemo(() => weeklyPMs.find(p => p.id === params.id), [params.id, weeklyPMs]);
+  const site = useMemo(() => sites.find(s => s.id === pm?.siteId), [pm, sites]);
+  const technician = useMemo(() => users.find(u => u.id === pm?.assignedTechnicianId), [pm, users]);
   
-  const tasks = useMemo(() => {
+  const pmTasks = useMemo(() => {
     if (!pm) return [];
     return pm.tasks.map(taskResult => {
-      return allTasks.find(t => t.id === taskResult.taskId);
+      return tasks.find(t => t.id === taskResult.taskId);
     }).filter((t): t is Task => t !== undefined);
-  }, [pm]);
+  }, [pm, tasks]);
 
   const [newComment, setNewComment] = useState('');
   
-  // This state is to simulate updates, in a real app it would be part of the pm object
-  const [comments, setComments] = useState(pm?.comments || []);
-  
-  const commentAuthors = useMemo(() => {
-      if (!comments) return {};
-      const authorIds = [...new Set(comments.map(c => c.userId))];
-      return authorIds.reduce((acc, id) => {
-          const author = users.find(u => u.id === id);
-          if (author) acc[id] = author;
-          return acc;
-      }, {} as Record<string, User>);
-  }, [comments]);
-
-
   const handleAddComment = () => {
     if (!newComment.trim() || !currentUser || !pm) return;
     
@@ -116,13 +103,29 @@ export default function PMDetailPage({ params }: { params: { id: string } }) {
         timestamp: new Date().toISOString()
     };
     
-    setComments(prev => [...prev, comment]);
+    const updatedPM = {
+        ...pm,
+        comments: [...(pm.comments || []), comment]
+    };
+
+    updateWeeklyPM(updatedPM);
     setNewComment('');
      toast({
         title: 'موفقیت',
         description: 'کامنت شما با موفقیت ثبت شد.',
       });
   }
+  
+  const commentAuthors = useMemo(() => {
+      if (!pm?.comments) return {};
+      const authorIds = [...new Set(pm.comments.map(c => c.userId))];
+      return authorIds.reduce((acc, id) => {
+          const author = users.find(u => u.id === id);
+          if (author) acc[id] = author;
+          return acc;
+      }, {} as Record<string, User>);
+  }, [pm?.comments, users]);
+
 
   const getStatusVariant = (status: string) => {
     if (status === 'Completed') return 'default';
@@ -169,7 +172,7 @@ export default function PMDetailPage({ params }: { params: { id: string } }) {
               className="w-full"
             >
               {pm.tasks?.map((taskResult, index) => {
-                const task = tasks.find(t => t.id === taskResult.taskId);
+                const task = pmTasks.find(t => t.id === taskResult.taskId);
                 if (!task) return null;
                 return (
                   <AccordionItem value={task.id} key={task.id}>
@@ -274,7 +277,7 @@ export default function PMDetailPage({ params }: { params: { id: string } }) {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
-              {comments?.map((comment, index) => {
+              {pm.comments?.map((comment, index) => {
                 const user = commentAuthors[comment.userId];
                 return (
                   <div key={index} className="flex items-start gap-3">

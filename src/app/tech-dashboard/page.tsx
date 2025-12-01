@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useContext } from 'react';
 import {
   Card,
   CardContent,
@@ -21,7 +21,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import type { PMStatus, WeeklyPM, Site, User } from '@/lib/types';
-import { sites, weeklyPMs } from '@/lib/data';
+import { AppContext } from '@/context/AppContext';
 import { format, endOfWeek } from 'date-fns';
 
 function getWeekDate(weekIdentifier: string): Date {
@@ -47,6 +47,7 @@ function getStatusVariant(status: PMStatus) {
 }
 
 export default function TechnicianDashboardPage() {
+  const { sites, weeklyPMs } = useContext(AppContext);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -61,7 +62,7 @@ export default function TechnicianDashboardPage() {
   const technicianPMs = useMemo(() => {
     if (!currentUser) return [];
     return weeklyPMs.filter(pm => pm.assignedTechnicianId === currentUser.id);
-  }, [currentUser]);
+  }, [currentUser, weeklyPMs]);
 
   const pmByStatus = useMemo(() => {
     return technicianPMs.reduce(
@@ -82,8 +83,7 @@ export default function TechnicianDashboardPage() {
         <TableRow>
           <TableHead>کد سایت</TableHead>
           <TableHead>شهر</TableHead>
-          <TableHead>تاریخ شروع CR</TableHead>
-          <TableHead>تاریخ پایان CR</TableHead>
+          <TableHead>هفته</TableHead>
           <TableHead>شماره CR</TableHead>
           <TableHead>وضعیت</TableHead>
           <TableHead>عملیات</TableHead>
@@ -93,8 +93,6 @@ export default function TechnicianDashboardPage() {
         {pms.length > 0 ? (
           pms.map((pm) => {
             const site = sites.find((s) => s.id === pm.siteId);
-            const startDate = getWeekDate(pm.weekIdentifier);
-            const endDate = endOfWeek(startDate, { weekStartsOn: 1 });
 
             return (
               <TableRow key={pm.id}>
@@ -102,8 +100,7 @@ export default function TechnicianDashboardPage() {
                 <TableCell>
                   {site?.location.split(', ')[1] || 'N/A'}
                 </TableCell>
-                <TableCell>{format(startDate, 'yyyy/MM/dd')}</TableCell>
-                <TableCell>{format(endDate, 'yyyy/MM/dd')}</TableCell>
+                <TableCell>{pm.weekIdentifier}</TableCell>
                 <TableCell>{pm.crNumber || 'N/A'}</TableCell>
                 <TableCell>
                   <Badge variant={getStatusVariant(pm.status)}>
@@ -156,13 +153,13 @@ export default function TechnicianDashboardPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="in-progress" className="w-full">
+          <Tabs defaultValue="pending" className="w-full">
             <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
-              <TabsTrigger value="in-progress">
-                در حال انجام ({pmByStatus['In Progress']?.length || 0})
-              </TabsTrigger>
               <TabsTrigger value="pending">
                 معلق ({pmByStatus['Pending']?.length || 0})
+              </TabsTrigger>
+              <TabsTrigger value="in-progress">
+                در حال انجام ({pmByStatus['In Progress']?.length || 0})
               </TabsTrigger>
               <TabsTrigger value="completed">
                 انجام شده ({pmByStatus['Completed']?.length || 0})
@@ -171,11 +168,11 @@ export default function TechnicianDashboardPage() {
                 باطل شده ({pmByStatus['Cancelled']?.length || 0})
               </TabsTrigger>
             </TabsList>
-            <TabsContent value="in-progress">
-              <PMTable pms={pmByStatus['In Progress'] || []} />
-            </TabsContent>
             <TabsContent value="pending">
               <PMTable pms={pmByStatus['Pending'] || []} />
+            </TabsContent>
+            <TabsContent value="in-progress">
+              <PMTable pms={pmByStatus['In Progress'] || []} />
             </TabsContent>
             <TabsContent value="completed">
               <PMTable pms={pmByStatus['Completed'] || []} />

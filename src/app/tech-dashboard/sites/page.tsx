@@ -10,12 +10,13 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { useEffect, useMemo, useState } from 'react';
-import { sites, users } from '@/lib/data';
+import { useEffect, useMemo, useState, useContext } from 'react';
 import type { Site, User } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
+import { AppContext } from '@/context/AppContext';
 
 export default function TechSitesPage() {
+  const { sites, users } = useContext(AppContext);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -31,7 +32,7 @@ export default function TechSitesPage() {
   const technicianSites = useMemo(() => {
     if (!currentUser) return [];
     return sites.filter(site => site.technicianId === currentUser.id);
-  }, [currentUser]);
+  }, [currentUser, sites]);
 
   if (loading) {
     return (

@@ -38,7 +38,7 @@ const Navbar = ({
             <Link href="/tech-dashboard" className="flex items-center gap-2">
               <Logo className="w-8 h-8 text-primary" />
               <span className="text-xl font-bold font-headline">
-                SiteWise PM
+                RasaPM
               </span>
             </Link>
             <div className="hidden md:flex items-baseline space-x-4 space-x-reverse">
@@ -102,7 +102,7 @@ const Footer = () => {
     <footer className="bg-card border-t mt-auto">
       <div className="container mx-auto py-4 px-4 text-center text-muted-foreground">
         <p>
-          &copy; {new Date().getFullYear()} SiteWise PM. تمام حقوق محفوظ است.
+          &copy; {new Date().getFullYear()} RasaPM. تمام حقوق محفوظ است.
         </p>
       </div>
     </footer>

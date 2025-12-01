@@ -48,7 +48,7 @@ export default function HomePage() {
           <Logo className="h-16 w-16 text-primary" />
         </div>
         <h1 className="text-4xl font-bold font-headline mb-2">
-          به SiteWise PM خوش آمدید
+          به RasaPM خوش آمدید
         </h1>
         <p className="text-lg text-muted-foreground mb-6">
           یک اپلیکیشن PWA برای مدیریت PMهای هفتگی سایت‌ها.

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useContext, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import {
@@ -13,7 +13,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { users } from '@/lib/data'; // Using mock data
+import { AppContext } from '@/context/AppContext';
 
 export default function LoginPage() {
   const [username, setUsername] = useState('');
@@ -21,6 +21,7 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const { toast } = useToast();
+  const { users } = useContext(AppContext);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,7 +38,11 @@ export default function LoginPage() {
         description: `خوش آمدید ${user.name}`,
       });
 
-      if (user.role === 'Admin' || user.role === 'PM' || user.role === 'RegionalManager') {
+      if (
+        user.role === 'Admin' ||
+        user.role === 'PM' ||
+        user.role === 'RegionalManager'
+      ) {
         router.push('/management-dashboard');
       } else {
         router.push('/tech-dashboard');

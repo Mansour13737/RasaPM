@@ -2,8 +2,8 @@ import { type MetadataRoute } from 'next'
  
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'SiteWise PM',
-    short_name: 'SiteWise',
+    name: 'RasaPM',
+    short_name: 'RasaPM',
     description: 'یک اپلیکیشن PWA برای مدیریت PMهای هفتگی سایت‌ها.',
     start_url: '/',
     display: 'standalone',

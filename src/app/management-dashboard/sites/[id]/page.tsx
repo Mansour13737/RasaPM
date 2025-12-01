@@ -61,14 +61,8 @@ import {
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
-import React, { useMemo, useState } from 'react';
-import { sites, weeklyPMs, changeRequests, users } from '@/lib/data';
-
-const allSites = sites;
-const allUsers = users;
-const allTechnicians = allUsers.filter(u => u.role === 'Technician');
-const allCities = [...new Set(allSites.map(s => s.location.split(', ')[1]))];
-
+import React, { useMemo, useState, useContext } from 'react';
+import { AppContext } from '@/context/AppContext';
 
 function getPriorityBadgeVariant(priority: CRPriority) {
   switch (priority) {
@@ -99,6 +93,9 @@ function getStatusBadgeVariant(status: CRStatus) {
 }
 
 const NewCRSheet = () => {
+  const { sites, users } = useContext(AppContext);
+  const allTechnicians = users.filter(u => u.role === 'Technician');
+  const allCities = [...new Set(sites.map(s => s.location.split(', ')[1]))];
   const [startDate, setStartDate] = React.useState<Date>();
   const [endDate, setEndDate] = React.useState<Date>();
 
@@ -138,7 +135,7 @@ const NewCRSheet = () => {
                 <SelectValue placeholder="کد سایت را انتخاب کنید" />
               </SelectTrigger>
               <SelectContent>
-                {allSites.map((s) => (
+                {sites.map((s) => (
                   <SelectItem key={s.id} value={s.id}>
                     {s.name}
                   </SelectItem>
@@ -251,6 +248,7 @@ const NewCRSheet = () => {
 };
 
 const NewPMSheet = () => {
+    const { sites } = useContext(AppContext);
   const [startDate, setStartDate] = React.useState<Date>();
   const [endDate, setEndDate] = React.useState<Date>();
 
@@ -281,7 +279,7 @@ const NewPMSheet = () => {
                 <SelectValue placeholder="کد سایت را انتخاب کنید" />
               </SelectTrigger>
               <SelectContent>
-                {allSites.map((s) => (
+                {sites.map((s) => (
                   <SelectItem key={s.id} value={s.id}>
                     {s.name}
                   </SelectItem>
@@ -364,11 +362,12 @@ const NewPMSheet = () => {
 };
 
 export default function SiteDetailPage({ params }: { params: { id: string } }) {
+  const { sites, weeklyPMs, changeRequests, users } = useContext(AppContext);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
 
-  const site = useMemo(() => sites.find((s) => s.id === params.id), [params.id]);
-  const pms = useMemo(() => weeklyPMs.filter((pm) => pm.siteId === params.id), [params.id]);
-  const crs = useMemo(() => changeRequests.filter((cr) => cr.siteId === params.id), [params.id]);
+  const site = useMemo(() => sites.find((s) => s.id === params.id), [params.id, sites]);
+  const pms = useMemo(() => weeklyPMs.filter((pm) => pm.siteId === params.id), [params.id, weeklyPMs]);
+  const crs = useMemo(() => changeRequests.filter((cr) => cr.siteId === params.id), [params.id, changeRequests]);
 
   React.useEffect(() => {
     const userString = localStorage.getItem('user');
