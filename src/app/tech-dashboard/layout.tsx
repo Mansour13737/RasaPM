@@ -24,6 +24,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Logo } from '@/components/icons';
 import { useEffect, useState } from 'react';
 import type { User } from '@/lib/types';
+import { getISOWeek } from 'date-fns';
+import { Badge } from '@/components/ui/badge';
 
 const Navbar = ({
   user,
@@ -32,6 +34,8 @@ const Navbar = ({
   user: User | null;
   onSignOut: () => void;
 }) => {
+  const currentWeekIdentifier = `W${getISOWeek(new Date())}`;
+  
   return (
     <nav className="bg-card border-b sticky top-0 z-50">
       <div className="container mx-auto px-4">
@@ -42,6 +46,7 @@ const Navbar = ({
               <span className="text-xl font-bold font-headline">
                 RasaPM
               </span>
+              <Badge variant="outline" className="hidden sm:inline-flex">هفته {currentWeekIdentifier}</Badge>
             </Link>
             <div className="hidden md:flex items-baseline space-x-4 space-x-reverse">
               <Link

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import React, { useState, useMemo, useContext } from 'react';
+import React, { useState, useMemo, useContext, useEffect } from 'react';
 import {
   Card,
   CardContent,
@@ -18,7 +18,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -35,18 +34,12 @@ import {
   CheckCircle,
   Clock,
   XCircle,
-  Calendar as CalendarIcon,
   FilePlus2,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import type { User, PMStatus, WeeklyPM, Site } from '@/lib/types';
-import {
-  Popover,
-  PopoverTrigger,
-  PopoverContent,
-} from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
-import { cn } from '@/lib/utils';
-import { format, startOfWeek, endOfWeek, isWithinInterval, getISOWeek, getYear } from 'date-fns';
+import { getISOWeek, getYear } from 'date-fns';
 import {
   Sheet,
   SheetContent,
@@ -57,18 +50,19 @@ import {
 } from '@/components/ui/sheet';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+} from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { cn } from '@/lib/utils';
+import { Calendar as CalendarIcon } from 'lucide-react';
 import { AISummary } from '@/components/ai-summary';
 import { AppContext } from '@/context/AppContext';
 import { useToast } from '@/hooks/use-toast';
 
-// Helper function to get the start date of a week from a "YYYY-WNN" string
-function getWeekDate(weekIdentifier: string): Date {
-  const [year, week] = weekIdentifier.split('-W').map(Number);
-  const d = new Date(year, 0, 1 + (week - 1) * 7);
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Adjust to Monday
-  return new Date(d.setDate(diff));
-}
+const ITEMS_PER_PAGE = 10;
 
 function getStatusVariant(status: PMStatus) {
   switch (status) {
@@ -103,9 +97,10 @@ const NewPMSheet = () => {
       return;
     }
 
-    const weekIdentifier = `${getYear(weekDate)}-W${getISOWeek(weekDate)}`;
+    const weekIdentifier = `${getYear(weekDate)}-W${getISOWeek(weekDate)
+      .toString()
+      .padStart(2, '0')}`;
     
-    // Find the technician assigned to the site
     const site = sites.find(s => s.id === selectedSiteId);
     if (!site) {
          toast({
@@ -123,7 +118,7 @@ const NewPMSheet = () => {
       assignedTechnicianId: site.technicianId,
       status: 'Pending',
       crNumber: crNumber,
-      tasks: tasks.map(t => ({ // Assign all static/dynamic tasks by default
+      tasks: tasks.map(t => ({
           taskId: t.id,
           isCompleted: false,
           notes: '',
@@ -142,7 +137,6 @@ const NewPMSheet = () => {
       description: `پلن PM برای سایت ${site.name} با موفقیت ایجاد و برای تکنسین ارسال شد.`,
     });
 
-    // Reset form
     setSelectedSiteId('');
     setCrNumber('');
     setComment('');
@@ -237,20 +231,26 @@ export default function ManagementDashboardPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCity, setSelectedCity] = useState('all');
-  const [selectedFlm, setSelectedFlm] = useState('all');
-  const [selectedDate, setSelectedDate] = React.useState<Date>();
-  
+  const [selectedTechnician, setSelectedTechnician] = useState('all');
+  const [selectedStatus, setSelectedStatus] = useState<PMStatus | 'all'>('all');
+
   const allTechnicians = useMemo(
     () => users.filter((u) => u.role === 'Technician'),
     [users]
   );
   const allCities = useMemo(
-    () => [...new Set(sites.map((s) => s.location.split(', ')[1]))],
+    () => [...new Set(sites.map((s) => s.location.split(', ')[1]))].sort(),
     [sites]
   );
+  
+  const currentWeekIdentifier = `${getYear(new Date())}-W${getISOWeek(new Date()).toString().padStart(2, '0')}`;
 
   const filteredPMs = useMemo(() => {
     return weeklyPMs.filter((pm) => {
+      // Filter only for the current week
+      if (pm.weekIdentifier !== currentWeekIdentifier) {
+        return false;
+      }
       const site = sites.find((s) => s.id === pm.siteId);
       if (!site) return false;
 
@@ -258,67 +258,30 @@ export default function ManagementDashboardPage() {
       const matchesSearch =
         searchTerm === '' ||
         site.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (pm.crNumber &&
-          pm.crNumber.toLowerCase().includes(searchTerm.toLowerCase()));
+        (pm.crNumber && pm.crNumber.toLowerCase().includes(searchTerm.toLowerCase()));
       const matchesCity = selectedCity === 'all' || siteCity === selectedCity;
-      const matchesFlm =
-        selectedFlm === 'all' || site.technicianId === selectedFlm;
+      const matchesTechnician = selectedTechnician === 'all' || pm.assignedTechnicianId === selectedTechnician;
+      const matchesStatus = selectedStatus === 'all' || pm.status === selectedStatus;
 
-      const matchesDate =
-        !selectedDate ||
-        (() => {
-          try {
-            const weekStart = getWeekDate(pm.weekIdentifier);
-            const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
-            return isWithinInterval(selectedDate, {
-              start: weekStart,
-              end: weekEnd,
-            });
-          } catch (e) {
-            // If weekIdentifier is invalid, don't show it
-            return false;
-          }
-        })();
-
-      return matchesSearch && matchesCity && matchesFlm && matchesDate;
+      return matchesSearch && matchesCity && matchesTechnician && matchesStatus;
     });
-  }, [searchTerm, selectedCity, selectedFlm, selectedDate, weeklyPMs, sites]);
+  }, [searchTerm, selectedCity, selectedTechnician, selectedStatus, weeklyPMs, sites, currentWeekIdentifier]);
+  
+  const paginatedPMs = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredPMs.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [filteredPMs, currentPage]);
 
-  const pmByStatus = useMemo(() => {
-    return filteredPMs.reduce(
-      (acc, pm) => {
-        if (!acc[pm.status]) {
-          acc[pm.status] = [];
-        }
-        acc[pm.status].push(pm);
-        return acc;
-      },
-      {} as Record<PMStatus, WeeklyPM[]>
-    );
-  }, [filteredPMs]);
+  const totalPages = Math.ceil(filteredPMs.length / ITEMS_PER_PAGE);
 
-  const availableTechnicians = useMemo(() => {
-    if (selectedCity === 'all') return allTechnicians;
-    const techIdsInCity = new Set(
-      sites
-        .filter((s) => s.location.split(', ')[1] === selectedCity)
-        .map((s) => s.technicianId)
-    );
-    return allTechnicians.filter((t) => techIdsInCity.has(t.id));
-  }, [selectedCity, allTechnicians, sites]);
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, selectedCity, selectedTechnician, selectedStatus]);
 
-  const availableCities = useMemo(() => {
-    if (selectedFlm === 'all') return allCities;
-    const citiesForTech = new Set(
-      sites
-        .filter((s) => s.technicianId === selectedFlm)
-        .map((s) => s.location.split(', ')[1])
-    );
-    return allCities.filter((c) => citiesForTech.has(c));
-  }, [selectedFlm, allCities, sites]);
 
   const pmStats = useMemo(() => {
-    return weeklyPMs.reduce(
+    const pmsToCount = weeklyPMs.filter(pm => pm.weekIdentifier === currentWeekIdentifier);
+    return pmsToCount.reduce(
       (acc, pm) => {
         if (pm.status === 'Completed') acc.completed += 1;
         else if (pm.status === 'In Progress') acc.inProgress += 1;
@@ -326,81 +289,9 @@ export default function ManagementDashboardPage() {
         else if (pm.status === 'Cancelled') acc.cancelled += 1;
         return acc;
       },
-      { completed: 0, inProgress: 0, pending: 0, cancelled: 0 }
+      { completed: 0, inProgress: 0, pending: 0, cancelled: 0, total: pmsToCount.length }
     );
-  }, [weeklyPMs]);
-
-  const handleCityChange = (value: string) => {
-    setSelectedCity(value);
-    // If the currently selected technician is not in the new city list, reset it
-    const techIsStillValid = availableTechnicians.some(
-      (t) => t.id === selectedFlm
-    );
-    if (selectedFlm !== 'all' && !techIsStillValid) {
-      setSelectedFlm('all');
-    }
-    setCurrentPage(1);
-  };
-
-  const handleFlmChange = (value: string) => {
-    setSelectedFlm(value);
-    // If the currently selected city is not in the new technician's city list, reset it
-    const cityIsStillValid = availableCities.some((c) => c === selectedCity);
-    if (selectedCity !== 'all' && !cityIsStillValid) {
-      setSelectedCity('all');
-    }
-    setCurrentPage(1);
-  };
-
-  const PMTable = ({ pms }: { pms: WeeklyPM[] }) => (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>کد سایت</TableHead>
-          <TableHead>شهر</TableHead>
-          <TableHead>هفته</TableHead>
-          <TableHead>شماره CR</TableHead>
-          <TableHead>وضعیت</TableHead>
-          <TableHead>عملیات</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {pms.length > 0 ? (
-          pms.map((pm) => {
-            const site = sites.find((s) => s.id === pm.siteId);
-            return (
-              <TableRow key={pm.id}>
-                <TableCell>{site?.name || 'N/A'}</TableCell>
-                <TableCell>
-                  {site?.location.split(', ')[1] || 'N/A'}
-                </TableCell>
-                <TableCell>{pm.weekIdentifier}</TableCell>
-                <TableCell>{pm.crNumber || 'N/A'}</TableCell>
-                <TableCell>
-                  <Badge variant={getStatusVariant(pm.status)}>
-                    {pm.status}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <Link href={`/management-dashboard/pm/${pm.id}`}>
-                    <Button variant="outline" size="sm">
-                      مشاهده
-                    </Button>
-                  </Link>
-                </TableCell>
-              </TableRow>
-            );
-          })
-        ) : (
-          <TableRow>
-            <TableCell colSpan={7} className="text-center h-24">
-              داده‌ای برای نمایش وجود ندارد.
-            </TableCell>
-          </TableRow>
-        )}
-      </TableBody>
-    </Table>
-  );
+  }, [weeklyPMs, currentWeekIdentifier]);
 
   return (
     <div className="space-y-6">
@@ -410,43 +301,47 @@ export default function ManagementDashboardPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              PMهای انجام شده
+              PMهای انجام شده (هفته)
             </CardTitle>
             <CheckCircle className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{pmStats.completed}</div>
+            <p className="text-xs text-muted-foreground">از {pmStats.total} برنامه</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              PMهای در حال انجام
+              PMهای در حال انجام (هفته)
             </CardTitle>
             <Activity className="h-4 w-4 text-blue-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{pmStats.inProgress}</div>
+             <p className="text-xs text-muted-foreground">از {pmStats.total} برنامه</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">PMهای معلق</CardTitle>
+            <CardTitle className="text-sm font-medium">PMهای معلق (هفته)</CardTitle>
             <Clock className="h-4 w-4 text-yellow-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{pmStats.pending}</div>
+             <p className="text-xs text-muted-foreground">از {pmStats.total} برنامه</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              PM های باطل شده
+              PM های باطل شده (هفته)
             </CardTitle>
             <XCircle className="h-4 w-4 text-red-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{pmStats.cancelled}</div>
+             <p className="text-xs text-muted-foreground">از {pmStats.total} برنامه</p>
           </CardContent>
         </Card>
       </div>
@@ -454,111 +349,143 @@ export default function ManagementDashboardPage() {
       <Card>
         <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-4">
           <div>
-            <CardTitle>برنامه‌های PM</CardTitle>
+            <CardTitle>برنامه‌های PM هفته جاری ({currentWeekIdentifier})</CardTitle>
             <CardDescription>
-              برنامه‌های PM را جستجو، فیلتر و مدیریت کنید.
+              برنامه‌های PM این هفته را جستجو، فیلتر و مدیریت کنید.
             </CardDescription>
           </div>
           <NewPMSheet />
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col md:flex-row gap-4 mb-4">
-            <div className="relative flex-1">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+            <div className="relative lg:col-span-4">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="جستجو بر اساس نام سایت یا شماره CR..."
                 className="pl-10"
                 value={searchTerm}
-                onChange={(e) => {
-                  setSearchTerm(e.target.value);
-                  setCurrentPage(1);
-                }}
+                onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
-              <Select value={selectedCity} onValueChange={handleCityChange}>
-                <SelectTrigger className="w-full md:w-[180px]">
-                  <SelectValue placeholder="فیلتر بر اساس شهر" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">همه شهرها</SelectItem>
-                  {availableCities.map((city) => (
-                    <SelectItem key={city} value={city}>
-                      {city}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={selectedFlm} onValueChange={handleFlmChange}>
-                <SelectTrigger className="w-full md:w-[180px]">
-                  <SelectValue placeholder="فیلتر بر اساس FLM" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">همه FLM ها</SelectItem>
-                  {availableTechnicians.map((tech) => (
-                    <SelectItem key={tech.id} value={tech.id}>
-                      {tech.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant={'outline'}
-                    className={cn(
-                      'w-full justify-start text-left font-normal md:w-[240px]',
-                      !selectedDate && 'text-muted-foreground'
-                    )}
-                  >
-                    <CalendarIcon className="ml-2 h-4 w-4" />
-                    {selectedDate ? (
-                      format(selectedDate, 'PPP')
-                    ) : (
-                      <span>فیلتر بر اساس تاریخ</span>
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={selectedDate}
-                    onSelect={setSelectedDate}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
+            
+            <Select value={selectedStatus} onValueChange={(v) => setSelectedStatus(v as any)}>
+              <SelectTrigger>
+                <SelectValue placeholder="فیلتر بر اساس وضعیت" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">همه وضعیت‌ها</SelectItem>
+                <SelectItem value="Pending">معلق</SelectItem>
+                <SelectItem value="In Progress">در حال انجام</SelectItem>
+                <SelectItem value="Completed">انجام شده</SelectItem>
+                <SelectItem value="Cancelled">باطل شده</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={selectedCity} onValueChange={setSelectedCity}>
+              <SelectTrigger>
+                <SelectValue placeholder="فیلتر بر اساس شهر" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">همه شهرها</SelectItem>
+                {allCities.map((city) => (
+                  <SelectItem key={city} value={city}>
+                    {city}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={selectedTechnician} onValueChange={setSelectedTechnician}>
+              <SelectTrigger>
+                <SelectValue placeholder="فیلتر بر اساس تکنسین" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">همه تکنسین‌ها</SelectItem>
+                {allTechnicians.map((tech) => (
+                  <SelectItem key={tech.id} value={tech.id}>
+                    {tech.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
-          <Tabs defaultValue="in-progress">
-            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
-              <TabsTrigger value="in-progress">
-                در حال انجام ({pmByStatus['In Progress']?.length || 0})
-              </TabsTrigger>
-              <TabsTrigger value="completed">
-                انجام شده ({pmByStatus['Completed']?.length || 0})
-              </TabsTrigger>
-              <TabsTrigger value="pending">
-                معلق ({pmByStatus['Pending']?.length || 0})
-              </TabsTrigger>
-              <TabsTrigger value="cancelled">
-                باطل شده ({pmByStatus['Cancelled']?.length || 0})
-              </TabsTrigger>
-            </TabsList>
-            <TabsContent value="in-progress">
-              <PMTable pms={pmByStatus['In Progress'] || []} />
-            </TabsContent>
-            <TabsContent value="completed">
-              <PMTable pms={pmByStatus['Completed'] || []} />
-            </TabsContent>
-            <TabsContent value="pending">
-              <PMTable pms={pmByStatus['Pending'] || []} />
-            </TabsContent>
-            <TabsContent value="cancelled">
-              <PMTable pms={pmByStatus['Cancelled'] || []} />
-            </TabsContent>
-          </Tabs>
+          <div className="border rounded-md">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>سایت</TableHead>
+                  <TableHead>تکنسین</TableHead>
+                  <TableHead>شهر</TableHead>
+                   <TableHead>شماره CR</TableHead>
+                  <TableHead>وضعیت</TableHead>
+                  <TableHead>عملیات</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {paginatedPMs.length > 0 ? (
+                  paginatedPMs.map((pm) => {
+                    const site = sites.find((s) => s.id === pm.siteId);
+                    const technician = users.find(u => u.id === pm.assignedTechnicianId);
+                    return (
+                      <TableRow key={pm.id}>
+                        <TableCell className="font-medium">{site?.name || 'N/A'}</TableCell>
+                        <TableCell>{technician?.name || 'نامشخص'}</TableCell>
+                        <TableCell>{site?.location.split(', ')[1] || 'N/A'}</TableCell>
+                        <TableCell>{pm.crNumber || '---'}</TableCell>
+                        <TableCell>
+                          <Badge variant={getStatusVariant(pm.status)}>
+                            {pm.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                           <Link href={`/management-dashboard/pm/${pm.id}`}>
+                            <Button variant="outline" size="sm">
+                              مشاهده
+                            </Button>
+                          </Link>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center h-24">
+                      داده‌ای برای نمایش با فیلترهای انتخاب شده وجود ندارد.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+            <div className="flex items-center justify-between mt-4">
+                <div className="text-sm text-muted-foreground">
+                    نمایش {paginatedPMs.length} از {filteredPMs.length} برنامه
+                </div>
+                <div className="flex items-center gap-2">
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
+                    disabled={currentPage === 1}
+                >
+                    <ChevronRight className="h-4 w-4" />
+                    قبلی
+                </Button>
+                <span className="text-sm">
+                    صفحه {currentPage} از {totalPages}
+                </span>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))}
+                    disabled={currentPage === totalPages}
+                >
+                    بعدی
+                    <ChevronLeft className="h-4 w-4" />
+                </Button>
+                </div>
+            </div>
         </CardContent>
       </Card>
     </div>
