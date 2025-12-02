@@ -37,6 +37,7 @@ import {
   FilePlus2,
   ChevronLeft,
   ChevronRight,
+  Sparkles,
 } from 'lucide-react';
 import type { User, PMStatus, WeeklyPM, Site } from '@/lib/types';
 import { getISOWeek, getYear } from 'date-fns';
@@ -64,7 +65,9 @@ import { useToast } from '@/hooks/use-toast';
 import { OverduePMsAlert } from '@/components/overdue-pms-alert';
 import { AIPlanner } from '@/components/ai-planner';
 
+
 const ITEMS_PER_PAGE = 10;
+
 
 function getStatusVariant(status: PMStatus) {
   switch (status) {
@@ -310,6 +313,7 @@ const NewPMSheet = () => {
     </Sheet>
   );
 };
+
 
 export default function ManagementDashboardPage() {
   const { users, sites, weeklyPMs } = useContext(AppContext);
