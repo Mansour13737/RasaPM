@@ -11,6 +11,7 @@ import {
   Users,
   MessageSquare,
   Calendar,
+  Menu,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -27,6 +28,74 @@ import { useEffect, useState } from 'react';
 import type { User } from '@/lib/types';
 import { getISOWeek, getYear } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
+import { useIsMobile } from '@/hooks/use-mobile';
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+  SheetClose,
+} from '@/components/ui/sheet';
+
+const navLinks = [
+  { href: '/management-dashboard', label: 'داشبورد', icon: Home },
+  { href: '/management-dashboard/calendar', label: 'تقویم PM', icon: Calendar },
+  { href: '/management-dashboard/sites', label: 'سایت‌ها', icon: Building2 },
+  { href: '/management-dashboard/users', label: 'کاربران', icon: Users },
+  {
+    href: '/management-dashboard/requests',
+    label: 'درخواست‌ها',
+    icon: MessageSquare,
+  },
+];
+
+const NavLink = ({
+  href,
+  label,
+  icon: Icon,
+  className = '',
+  onClick,
+}: {
+  href: string;
+  label: string;
+  icon: React.ElementType;
+  className?: string;
+  onClick?: () => void;
+}) => (
+  <Link
+    href={href}
+    onClick={onClick}
+    className={`px-3 py-2 rounded-md text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground flex items-center gap-2 ${className}`}
+  >
+    <Icon className="w-4 h-4" />
+    {label}
+  </Link>
+);
+
+const MobileNav = () => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <Sheet open={isOpen} onOpenChange={setIsOpen}>
+      <SheetTrigger asChild>
+        <Button variant="ghost" size="icon" className="md:hidden">
+          <Menu />
+          <span className="sr-only">باز کردن منو</span>
+        </Button>
+      </SheetTrigger>
+      <SheetContent side="right">
+        <div className="flex flex-col space-y-2 mt-6">
+          {navLinks.map((link) => (
+            <NavLink
+              key={link.href}
+              {...link}
+              onClick={() => setIsOpen(false)}
+            />
+          ))}
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+};
 
 const Navbar = ({
   user,
@@ -36,6 +105,7 @@ const Navbar = ({
   onSignOut: () => void;
 }) => {
   const currentWeekIdentifier = `W${getISOWeek(new Date())}`;
+  const isMobile = useIsMobile();
 
   return (
     <nav className="bg-card border-b sticky top-0 z-50">
@@ -47,50 +117,20 @@ const Navbar = ({
               className="flex items-center gap-2"
             >
               <Logo className="w-8 h-8 text-primary" />
-              <span className="text-xl font-bold font-headline">
-                RasaPM
-              </span>
-               <Badge variant="outline" className="hidden sm:inline-flex">هفته {currentWeekIdentifier}</Badge>
+              <span className="text-xl font-bold font-headline">RasaPM</span>
+              <Badge variant="outline" className="hidden sm:inline-flex">
+                هفته {currentWeekIdentifier}
+              </Badge>
             </Link>
-            <div className="hidden md:flex items-baseline space-x-4 space-x-reverse">
-              <Link
-                href="/management-dashboard"
-                className="px-3 py-2 rounded-md text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground flex items-center gap-2"
-              >
-                <Home className="w-4 h-4" />
-                داشبورد
-              </Link>
-               <Link
-                href="/management-dashboard/calendar"
-                className="px-3 py-2 rounded-md text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground flex items-center gap-2"
-              >
-                <Calendar className="w-4 h-4" />
-                تقویم PM
-              </Link>
-              <Link
-                href="/management-dashboard/sites"
-                className="px-3 py-2 rounded-md text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground flex items-center gap-2"
-              >
-                <Building2 className="w-4 h-4" />
-                سایت‌ها
-              </Link>
-              <Link
-                href="/management-dashboard/users"
-                className="px-3 py-2 rounded-md text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground flex items-center gap-2"
-              >
-                <Users className="w-4 h-4" />
-                کاربران
-              </Link>
-              <Link
-                href="/management-dashboard/requests"
-                className="px-3 py-2 rounded-md text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground flex items-center gap-2"
-              >
-                <MessageSquare className="w-4 h-4" />
-                درخواست‌ها
-              </Link>
-            </div>
+            {!isMobile && (
+              <div className="hidden md:flex items-baseline space-x-4 space-x-reverse">
+                {navLinks.map((link) => (
+                  <NavLink key={link.href} {...link} />
+                ))}
+              </div>
+            )}
           </div>
-          <div className="flex items-center">
+          <div className="flex items-center gap-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="rounded-full">
@@ -122,6 +162,7 @@ const Navbar = ({
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            {isMobile && <MobileNav />}
           </div>
         </div>
       </div>
@@ -133,9 +174,7 @@ const Footer = () => {
   return (
     <footer className="bg-card border-t mt-auto">
       <div className="container mx-auto py-4 px-4 text-center text-muted-foreground">
-        <p>
-          &copy; {new Date().getFullYear()} RasaPM. تمام حقوق محفوظ است.
-        </p>
+        <p>&copy; {new Date().getFullYear()} RasaPM. تمام حقوق محفوظ است.</p>
       </div>
     </footer>
   );
@@ -155,13 +194,17 @@ export default function ManagementDashboardLayout({
     if (userString) {
       try {
         const storedUser: User = JSON.parse(userString);
-        if (storedUser.role === 'Admin' || storedUser.role === 'PM' || storedUser.role === 'RegionalManager') {
+        if (
+          storedUser.role === 'Admin' ||
+          storedUser.role === 'PM' ||
+          storedUser.role === 'RegionalManager'
+        ) {
           setUser(storedUser);
         } else {
           router.replace('/tech-dashboard');
         }
       } catch (error) {
-        console.error("Failed to parse user, signing out.", error);
+        console.error('Failed to parse user, signing out.', error);
         localStorage.removeItem('user');
         router.replace('/');
       }
