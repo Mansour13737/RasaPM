@@ -11,6 +11,7 @@ import {
   MessageSquarePlus,
   Calendar,
   Menu,
+  Clock as ClockIcon,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -44,6 +45,40 @@ const navLinks = [
   { href: '/tech-dashboard/sites', label: 'سایت‌های من', icon: Building2 },
   { href: '/tech-dashboard/requests', label: 'درخواست‌ها', icon: MessageSquarePlus },
 ];
+
+const Clock = () => {
+  const [time, setTime] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Set initial time
+    const updateClock = () => {
+        setTime(new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+    };
+    updateClock();
+    
+    // Update time every second
+    const timerId = setInterval(updateClock, 1000);
+
+    // Cleanup interval on component unmount
+    return () => clearInterval(timerId);
+  }, []);
+
+  if (time === null) {
+      return (
+        <Badge variant="outline" className="flex items-center gap-1 tabular-nums">
+           <ClockIcon className="w-3 h-3" />
+           <span>--:--:--</span>
+        </Badge>
+      )
+  }
+  
+  return (
+    <Badge variant="outline" className="flex items-center gap-1 tabular-nums">
+       <ClockIcon className="w-3 h-3" />
+      <span>{time}</span>
+    </Badge>
+  );
+};
 
 
 const NavLink = ({
@@ -134,6 +169,7 @@ const Navbar = ({
             )}
           </div>
           <div className="flex items-center gap-2">
+            <Clock />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="rounded-full">
