@@ -12,6 +12,7 @@ import {
   MessageSquare,
   Calendar,
   Menu,
+  Clock as ClockIcon,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -49,6 +50,41 @@ const navLinks = [
     icon: MessageSquare,
   },
 ];
+
+const Clock = () => {
+  const [time, setTime] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Set initial time
+    const updateClock = () => {
+        setTime(new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+    };
+    updateClock();
+    
+    // Update time every second
+    const timerId = setInterval(updateClock, 1000);
+
+    // Cleanup interval on component unmount
+    return () => clearInterval(timerId);
+  }, []);
+
+  if (time === null) {
+      return (
+        <Badge variant="outline" className="flex items-center gap-1 tabular-nums">
+           <ClockIcon className="w-3 h-3" />
+           <span>--:--:--</span>
+        </Badge>
+      )
+  }
+  
+  return (
+    <Badge variant="outline" className="flex items-center gap-1 tabular-nums">
+       <ClockIcon className="w-3 h-3" />
+      <span>{time}</span>
+    </Badge>
+  );
+};
+
 
 const NavLink = ({
   href,
@@ -139,6 +175,7 @@ const Navbar = ({
             )}
           </div>
           <div className="flex items-center gap-2">
+            <Clock />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="rounded-full">
