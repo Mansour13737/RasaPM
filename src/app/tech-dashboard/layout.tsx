@@ -10,6 +10,7 @@ import {
   User as UserIcon,
   MessageSquarePlus,
   Calendar,
+  Menu,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -26,6 +27,81 @@ import { useEffect, useState } from 'react';
 import type { User } from '@/lib/types';
 import { getISOWeek } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
+import { useIsMobile } from '@/hooks/use-mobile';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet';
+
+
+const navLinks = [
+  { href: '/tech-dashboard', label: 'داشبورد', icon: Home },
+  { href: '/tech-dashboard/calendar', label: 'تقویم PM', icon: Calendar },
+  { href: '/tech-dashboard/sites', label: 'سایت‌های من', icon: Building2 },
+  { href: '/tech-dashboard/requests', label: 'درخواست‌ها', icon: MessageSquarePlus },
+];
+
+
+const NavLink = ({
+  href,
+  label,
+  icon: Icon,
+  className = '',
+  onClick,
+}: {
+  href: string;
+  label: string;
+  icon: React.ElementType;
+  className?: string;
+  onClick?: () => void;
+}) => (
+  <Link
+    href={href}
+    onClick={onClick}
+    className={`px-3 py-2 rounded-md text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground flex items-center gap-2 ${className}`}
+  >
+    <Icon className="w-4 h-4" />
+    {label}
+  </Link>
+);
+
+
+const MobileNav = () => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <Sheet open={isOpen} onOpenChange={setIsOpen}>
+      <SheetTrigger asChild>
+        <Button variant="ghost" size="icon" className="md:hidden">
+          <Menu />
+          <span className="sr-only">باز کردن منو</span>
+        </Button>
+      </SheetTrigger>
+      <SheetContent side="right">
+        <SheetHeader>
+          <SheetTitle>منو تکنسین</SheetTitle>
+          <SheetDescription>
+            برای ناوبری به بخش مورد نظر خود، یکی از گزینه‌ها را انتخاب کنید.
+          </SheetDescription>
+        </SheetHeader>
+        <div className="flex flex-col space-y-2 mt-6">
+          {navLinks.map((link) => (
+            <NavLink
+              key={link.href}
+              {...link}
+              onClick={() => setIsOpen(false)}
+            />
+          ))}
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+};
+
 
 const Navbar = ({
   user,
@@ -35,6 +111,7 @@ const Navbar = ({
   onSignOut: () => void;
 }) => {
   const currentWeekIdentifier = `W${getISOWeek(new Date())}`;
+  const isMobile = useIsMobile();
   
   return (
     <nav className="bg-card border-b sticky top-0 z-50">
@@ -48,38 +125,15 @@ const Navbar = ({
               </span>
               <Badge variant="outline" className="hidden sm:inline-flex">هفته {currentWeekIdentifier}</Badge>
             </Link>
-            <div className="hidden md:flex items-baseline space-x-4 space-x-reverse">
-              <Link
-                href="/tech-dashboard"
-                className="px-3 py-2 rounded-md text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground flex items-center gap-2"
-              >
-                <Home className="w-4 h-4" />
-                داشبورد
-              </Link>
-              <Link
-                href="/tech-dashboard/calendar"
-                className="px-3 py-2 rounded-md text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground flex items-center gap-2"
-              >
-                <Calendar className="w-4 h-4" />
-                تقویم PM
-              </Link>
-              <Link
-                href="/tech-dashboard/sites"
-                className="px-3 py-2 rounded-md text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground flex items-center gap-2"
-              >
-                <Building2 className="w-4 h-4" />
-                سایت‌های من
-              </Link>
-              <Link
-                href="/tech-dashboard/requests"
-                className="px-3 py-2 rounded-md text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground flex items-center gap-2"
-              >
-                <MessageSquarePlus className="w-4 h-4" />
-                درخواست‌ها
-              </Link>
-            </div>
+            {!isMobile && (
+              <div className="hidden md:flex items-baseline space-x-4 space-x-reverse">
+                  {navLinks.map((link) => (
+                    <NavLink key={link.href} {...link} />
+                  ))}
+              </div>
+            )}
           </div>
-          <div className="flex items-center">
+          <div className="flex items-center gap-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="rounded-full">
@@ -111,6 +165,7 @@ const Navbar = ({
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            {isMobile && <MobileNav />}
           </div>
         </div>
       </div>
