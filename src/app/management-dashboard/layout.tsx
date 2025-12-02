@@ -32,8 +32,10 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import {
   Sheet,
   SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
   SheetTrigger,
-  SheetClose,
 } from '@/components/ui/sheet';
 
 const navLinks = [
@@ -83,6 +85,12 @@ const MobileNav = () => {
         </Button>
       </SheetTrigger>
       <SheetContent side="right">
+        <SheetHeader>
+          <SheetTitle>منو</SheetTitle>
+          <SheetDescription>
+            برای ناوبری به بخش مورد نظر خود، یکی از گزینه‌ها را انتخاب کنید.
+          </SheetDescription>
+        </SheetHeader>
         <div className="flex flex-col space-y-2 mt-6">
           {navLinks.map((link) => (
             <NavLink
