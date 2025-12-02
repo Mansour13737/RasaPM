@@ -4,7 +4,7 @@
  * @fileOverview A flow to generate a weekly PM plan.
  */
 
-import { ai } from '@/ai/genkit';
+import { ai } from '@/genkit';
 import { z } from 'genkit';
 
 const SiteSchema = z.object({
